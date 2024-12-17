@@ -1,7 +1,6 @@
 #pragma once
 #include <vector>
 #include <string>
-#include <random>
 #include <algorithm>
 #include <sstream>
 #include <iostream>
@@ -90,19 +89,4 @@ namespace SlidingPuzzle {
              state.board[move.row][move.col]);
         state.empty = move;
     }
-
-    // inline State createRandomState(int moves = 1000) {
-    //     State state = createGoalState();
-    //     random_device rd;
-    //     mt19937 gen(rd());
-        
-    //     for (int i = 0; i < moves; i++) {
-    //         auto validMoves = getValidMoves(state);
-    //         if (validMoves.empty()) break;
-            
-    //         uniform_int_distribution<> dis(0, validMoves.size() - 1);
-    //         applyMove(state, validMoves[dis(gen)]);
-    //     }
-    //     return state;
-    // }
 } 

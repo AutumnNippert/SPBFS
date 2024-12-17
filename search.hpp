@@ -2,6 +2,7 @@
 #include <vector>
 #include <functional>
 #include <iostream>
+
 template<typename State, typename Cost = float>
 class Search {
 public:
@@ -14,7 +15,7 @@ public:
 
     size_t expandedNodes = 0; // Number of nodes expanded during the search
     size_t generatedNodes = 0; // Number of nodes generated during the search
-    size_t maxQueueSize = 0; // Maximum size of the queue during the search
+    size_t duplicatedNodes = 0; // Number of nodes duplicated during the search
     double maxF = 0; // Maximum f value of a node during the search
 
     // Virtual destructor for proper inheritance
@@ -33,7 +34,7 @@ public:
     void printStats() {
         std::cout << "Expanded nodes: " << expandedNodes << std::endl;
         std::cout << "Generated nodes: " << generatedNodes << std::endl;
-        std::cout << "Max queue size: " << maxQueueSize << std::endl;
-        std::cout << "Max f value: " << maxF << std::endl;
+        std::cout << "Duplicated nodes: " << duplicatedNodes << std::endl;
+        // std::cout << "Max f value: " << maxF << std::endl;
     }
 }; 

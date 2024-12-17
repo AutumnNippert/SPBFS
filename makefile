@@ -2,10 +2,10 @@ CXX = g++
 CXXFLAGS = -std=c++17 -Wall -Wextra
 
 # Output binary
-TARGET = sliding_puzzle
+TARGET = main
 
 # Source files
-SRCS = sliding_puzzle_solver.cpp
+SRCS = main.cpp
 
 # Header files
 HEADERS = search.hpp astar.hpp sliding_puzzle.hpp sliding_puzzle_solver.hpp

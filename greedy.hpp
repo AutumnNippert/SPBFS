@@ -9,7 +9,7 @@
 using namespace std;
 
 template<typename State, typename Cost = float>
-class AStar : public Search<State, Cost> {
+class Greedy : public Search<State, Cost> {
 private:
 
     using IsGoalFn = typename Search<State, Cost>::IsGoal;
@@ -18,8 +18,6 @@ private:
     using GetCostFn = typename Search<State, Cost>::GetCost;
     using HashFn = typename Search<State, Cost>::HashFn;
 
-    size_t fLayer = 0;
-
     struct Node {
         State state;
         Cost f{}, g{}, h{};
@@ -27,7 +25,7 @@ private:
 
         Node() = default;
         Node(State s) : state(s) {}
-        bool operator > (const Node& other) const { return f > other.f; }
+        bool operator>(const Node& other) const { return h > other.h; }
     };
 
     void expand(
@@ -39,6 +37,7 @@ private:
         GetCostFn getCost
     ) {
         this->expandedNodes++;
+        cout << "Expanding node with h value of " << current.h << endl;
         for (const auto& successorPos : getSuccessors(current.state)) {
 
             Cost tentativeG = current.g + getCost(current.state, successorPos);
@@ -54,7 +53,7 @@ private:
             if (it != closed.end()) { 
                 this->duplicatedNodes++;
                 if (it->second.f >= successor.f) {
-                    closed.erase(it); // remove it because it's worse than the current successor
+                    closed.erase(it);
                 } else {
                     continue;
                 }
@@ -62,15 +61,11 @@ private:
 
             closed[successorPos] = successor;
 
-
-            if (successor.f > this->maxF) 
-                this->maxF = successor.f;
-
             // Add successor to open list
             open.push(successor);
             this->generatedNodes++;
         }
-        // this->printStats();
+        this->printStats();
     }
 
     static vector<State> reconstructPath(
@@ -96,20 +91,22 @@ public:
         GetSuccessorsFn getSuccessors,
         HeuristicFn heuristic,
         GetCostFn getCost,
-        HashFn hash
+        HashFn hash = nullptr
     ) override {
-        priority_queue<Node, vector<Node>, greater<>> open;
-        unordered_map<State, Node, decltype(hash)> closed(0, hash);
 
         std::cout << "Starting A* search" << std::endl;
+
+        priority_queue<Node, vector<Node>, greater<>> open;
+        
+        if (!hash) {
+            throw runtime_error("Hash function must be provided for custom types");
+        }
+        unordered_map<State, Node, decltype(hash)> closed(0, hash);
 
         Node startNode(start);
         startNode.h = heuristic(start, start);
         startNode.f = startNode.h;
         open.push(startNode);
-
-        std::cout << "Initial heuristic: " << startNode.h << std::endl;
-        this->fLayer = startNode.f;
         
         this->generatedNodes = 1;
 
@@ -117,13 +114,8 @@ public:
             Node current = open.top();
             open.pop();
 
-            if (current.f > this->fLayer) {
-                std::cout << "New f layer reached: " << current.f << std::endl;
-                this->fLayer = current.f;
-            }
-
             if (isGoal(current.state)) {
-                std::cout << "Goal found: " << current.state << std::endl;
+                // std::cout << "Goal found: " << current.state << std::endl;
                 return reconstructPath(current, closed);
             }
 
