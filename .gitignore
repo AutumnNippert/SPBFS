@@ -1,0 +1,5 @@
+.vscode
+data
+sliding_puzzle
+
+*.o
