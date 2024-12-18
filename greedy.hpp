@@ -28,7 +28,13 @@ private:
 
         Node() = default;
         Node(State s) : state(s) {}
-        bool operator > (const Node& other) const { return h > other.h; }
+        
+        bool operator > (const Node& other) const { 
+            if (h == other.h) {
+                return g > other.g;
+            }
+            return h > other.h;
+        }
     };
 
     void expand(

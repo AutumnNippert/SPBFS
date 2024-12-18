@@ -8,6 +8,7 @@ using namespace std;
 using namespace SlidingPuzzle;
 
 class SlidingPuzzleSolver {
+
 public:
 
     static pair<State, State> parseInput(std::istream& input) {
@@ -55,6 +56,7 @@ public:
         const State& goal,
         Search<State, float>& searcher
     ) {
+
         auto isGoal = [&goal](const State& state) {
             return state == goal;
         };
@@ -71,26 +73,26 @@ public:
 
         auto manhattanDistance = [](const State& current, const State& goal) {
             // for each tile in the current state, calculate the manhattan distance to the goal state and sum them up
+
+            int goalIndexLookup[SIZE * SIZE];
+            for (int i = 0; i < SIZE * SIZE; i++) {
+                goalIndexLookup[goal.board[i]] = i;
+            }
+
             int distance = 0;
             for (int i = 0; i < SIZE * SIZE; i++) {
                 int currentTile = current.board[i];
                 if (currentTile == EMPTY_TILE) {
                     continue;
                 }
-                int goalIndex = -1;
-                for (int j = 0; j < SIZE * SIZE; j++) {
-                    if (goal.board[j] == currentTile) {
-                        goalIndex = j;
-                        break;
-                    }
-                }
-                int currentRow = i / SIZE;
-                int currentCol = i % SIZE;
+                int goalIndex = goalIndexLookup[currentTile];
                 int goalRow = goalIndex / SIZE;
                 int goalCol = goalIndex % SIZE;
-                distance += abs(currentRow - goalRow) + abs(currentCol - goalCol);
+                int currentRow = i / SIZE;
+                int currentCol = i % SIZE;
+                distance += abs(goalRow - currentRow) + abs(goalCol - currentCol);
             }
-            return distance;
+            return distance - 1;
         };
 
         auto returnZero = [](const State&, const State&) {
@@ -102,7 +104,10 @@ public:
         };
 
         auto hash = [](const State& state) -> size_t {
-            return std::hash<string>{}(state.toString());
+            size_t h = state.board[0];
+            for (int i = 1; i < SlidingPuzzle::SIZE * SlidingPuzzle::SIZE; i++)
+                h += h * 3 + state.board[i];
+            return h;
         };
         
         return searcher.findPath(

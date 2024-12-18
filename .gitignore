@@ -1,5 +1,6 @@
 .vscode
 data
-sliding_puzzle
+main
+perf*
 
 *.o

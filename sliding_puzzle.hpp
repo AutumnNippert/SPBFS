@@ -23,13 +23,13 @@ namespace SlidingPuzzle {
         vector<int> board;
         Position empty;
 
-        bool operator==(const State& other) const {
+        bool operator == (const State& other) const {
             return board == other.board;
         }
 
         // Required for use as key in unordered_map
-        bool operator<(const State& other) const {
-            return toString() < other.toString();
+        bool operator < (const State& other) const {
+            return this->hash() < other.hash();
         }
 
         string toString() const {
@@ -39,9 +39,16 @@ namespace SlidingPuzzle {
             }
             return ss.str();
         }
+
+        size_t hash() const {
+            size_t h = board[0];
+            for (int i = 1; i < SIZE * SIZE; i++)
+                h += h * 3 + board[i];
+            return h;
+        }
     };
 
-    inline std::ostream& operator<<(std::ostream& os, const State& state) {
+    inline std::ostream& operator << (std::ostream& os, const State& state) {
         for (int val : state.board) {
             os << val << " ";
         }
