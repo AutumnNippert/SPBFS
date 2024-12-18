@@ -18,6 +18,9 @@ private:
     using GetCostFn = typename Search<State, Cost>::GetCost;
     using HashFn = typename Search<State, Cost>::HashFn;
 
+    size_t fLayer = 0;
+    size_t minH = 0;
+
     struct Node {
         State state;
         Cost f{}, g{}, h{};
@@ -25,7 +28,7 @@ private:
 
         Node() = default;
         Node(State s) : state(s) {}
-        bool operator>(const Node& other) const { return h > other.h; }
+        bool operator > (const Node& other) const { return h > other.h; }
     };
 
     void expand(
@@ -38,7 +41,6 @@ private:
         GetCostFn getCost
     ) {
         this->expandedNodes++;
-        cout << "Expanding node with h value of " << current.h << endl;
         for (const auto& successorPos : getSuccessors(current.state)) {
 
             Cost tentativeG = current.g + getCost(current.state, successorPos);
@@ -54,7 +56,7 @@ private:
             if (it != closed.end()) { 
                 this->duplicatedNodes++;
                 if (it->second.f >= successor.f) {
-                    closed.erase(it);
+                    closed.erase(it); // remove it because it's worse than the current successor
                 } else {
                     continue;
                 }
@@ -62,11 +64,15 @@ private:
 
             closed[successorPos] = successor;
 
+
+            if (successor.f > this->maxF) 
+                this->maxF = successor.f;
+
             // Add successor to open list
             open.push(successor);
             this->generatedNodes++;
         }
-        this->printStats();
+        // this->printStats();
     }
 
     static vector<State> reconstructPath(
@@ -92,22 +98,19 @@ public:
         GetSuccessorsFn getSuccessors,
         HeuristicFn heuristic,
         GetCostFn getCost,
-        HashFn hash = nullptr
+        HashFn hash
     ) override {
-
-        std::cout << "Starting A* search" << std::endl;
-
         priority_queue<Node, vector<Node>, greater<>> open;
-        
-        if (!hash) {
-            throw runtime_error("Hash function must be provided for custom types");
-        }
         unordered_map<State, Node, decltype(hash)> closed(0, hash);
 
         Node startNode(start);
         startNode.h = heuristic(start, goal);
         startNode.f = startNode.h;
         open.push(startNode);
+
+        std::cout << "Initial heuristic: " << startNode.h << std::endl;
+        this->fLayer = startNode.f;
+        this->minH = startNode.h;
         
         this->generatedNodes = 1;
 
@@ -115,8 +118,19 @@ public:
             Node current = open.top();
             open.pop();
 
+            if (current.f > this->fLayer) {
+                // std::cout << "New f layer reached: " << current.f << std::endl;
+                this->fLayer = current.f;
+            }
+
+            if (current.h < this->minH) {
+                std::cout << "New minimum heuristic found: " << current.h << std::endl;
+                this->minH = current.h;
+            }
+
             if (current.h == 0) {
-                // std::cout << "Goal found: " << current.state << std::endl;
+                std::cout << "Goal found: " << std::endl;
+                this->printStats();
                 return reconstructPath(current, closed);
             }
 
@@ -124,6 +138,7 @@ public:
             expand(open, closed, current, goal, getSuccessors, heuristic, getCost);
         }
 
+        this->printStats();
         return {};
     }
 }; 

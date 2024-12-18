@@ -103,8 +103,6 @@ public:
         priority_queue<Node, vector<Node>, greater<>> open;
         unordered_map<State, Node, decltype(hash)> closed(0, hash);
 
-        std::cout << "Starting A* search" << std::endl;
-
         Node startNode(start);
         startNode.h = heuristic(start, goal);
         startNode.f = startNode.h;
@@ -121,7 +119,7 @@ public:
             open.pop();
 
             if (current.f > this->fLayer) {
-                std::cout << "New f layer reached: " << current.f << std::endl;
+                // std::cout << "New f layer reached: " << current.f << std::endl;
                 this->fLayer = current.f;
             }
 
@@ -131,7 +129,8 @@ public:
             }
 
             if (current.h == 0) {
-                std::cout << "Goal found: " << current.state << std::endl;
+                std::cout << "Goal found: " << std::endl;
+                this->printStats();
                 return reconstructPath(current, closed);
             }
 
@@ -139,6 +138,8 @@ public:
             expand(open, closed, current, goal, getSuccessors, heuristic, getCost);
         }
 
+
+        this->printStats();
         return {};
     }
 }; 
