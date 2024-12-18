@@ -32,6 +32,7 @@ private:
         priority_queue<Node, vector<Node>, greater<>>& open,
         unordered_map<State, Node, HashFn>& closed,
         const Node& current,
+        const State& goal,
         GetSuccessorsFn getSuccessors,
         HeuristicFn heuristic,
         GetCostFn getCost
@@ -44,7 +45,7 @@ private:
 
             Node successor(successorPos);
             successor.g = tentativeG;
-            successor.h = heuristic(successorPos, successorPos);
+            successor.h = heuristic(successorPos, goal);
             successor.f = successor.g + successor.h;
             successor.parent = current.state;
 
@@ -87,7 +88,7 @@ private:
 public:
     vector<State> findPath(
         const State& start,
-        IsGoalFn isGoal,
+        const State& goal,
         GetSuccessorsFn getSuccessors,
         HeuristicFn heuristic,
         GetCostFn getCost,
@@ -104,7 +105,7 @@ public:
         unordered_map<State, Node, decltype(hash)> closed(0, hash);
 
         Node startNode(start);
-        startNode.h = heuristic(start, start);
+        startNode.h = heuristic(start, goal);
         startNode.f = startNode.h;
         open.push(startNode);
         
@@ -114,13 +115,13 @@ public:
             Node current = open.top();
             open.pop();
 
-            if (isGoal(current.state)) {
+            if (current.h == 0) {
                 // std::cout << "Goal found: " << current.state << std::endl;
                 return reconstructPath(current, closed);
             }
 
             closed[current.state] = current;
-            expand(open, closed, current, getSuccessors, heuristic, getCost);
+            expand(open, closed, current, goal, getSuccessors, heuristic, getCost);
         }
 
         return {};

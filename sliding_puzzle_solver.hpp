@@ -2,6 +2,7 @@
 #include "search.hpp"
 #include "sliding_puzzle.hpp"
 #include <cmath>
+#include <iostream>
 
 using namespace std;
 using namespace SlidingPuzzle;
@@ -11,7 +12,7 @@ public:
 
     static pair<State, State> parseInput(std::istream& input) {
         State state;
-        state.board.resize(SIZE, std::vector<int>(SIZE));
+        state.board.resize(SIZE * SIZE); // Adjusted to 1D array
         
         // Read dimensions
         int rows, cols;
@@ -24,29 +25,25 @@ public:
         std::getline(input, line); // Read the line "starting positions for each tile:"
 
         // Read starting positions for each tile
-        for (int i = 0; i < SIZE; i++) {
-            for (int j = 0; j < SIZE; j++) {
-                std::getline(input, line);
-                input >> state.board[i][j];
-                if (state.board[i][j] == EMPTY_TILE) {
-                    state.empty = {i, j};  // Set the position of the empty tile
-                }
+        for (int i = 0; i < SIZE * SIZE; i++) {
+            std::getline(input, line); // Read the line "starting positions for each tile:"
+            input >> state.board[i];
+            if (state.board[i] == EMPTY_TILE) {
+                state.empty.index = i;  // Set the position of the empty tile
             }
         }
 
         // Skip the "goal positions:" line
         std::getline(input, line); 
         State goal;
-        goal.board.resize(SIZE, std::vector<int>(SIZE));
+        goal.board.resize(SIZE * SIZE); // Adjusted to 1D array
         
         // Read goal positions
-        for (int i = 0; i < SIZE; i++) {
-            for (int j = 0; j < SIZE; j++) {
-                std::getline(input, line);
-                input >> goal.board[i][j];
-                if (goal.board[i][j] == EMPTY_TILE) {
-                    goal.empty = {i, j};  // Set the position of the empty tile in the goal state
-                }
+        for (int i = 0; i < SIZE * SIZE; i++) {
+            std::getline(input, line); // Read the line "starting positions for each tile:"
+            input >> goal.board[i];
+            if (goal.board[i] == EMPTY_TILE) {
+                goal.empty.index = i;  // Set the position of the empty tile in the goal state
             }
         }
 
@@ -72,20 +69,32 @@ public:
             return successors;
         };
 
-
         auto manhattanDistance = [](const State& current, const State& goal) {
+            // for each tile in the current state, calculate the manhattan distance to the goal state and sum them up
             int distance = 0;
-            for (int i = 0; i < SIZE; i++) {
-                for (int j = 0; j < SIZE; j++) {
-                    int value = current.board[i][j];
-                    if (value != EMPTY_TILE) {
-                        int goalRow = (value - 1) / SIZE;
-                        int goalCol = (value - 1) % SIZE;
-                        distance += abs(i - goalRow) + abs(j - goalCol);
+            for (int i = 0; i < SIZE * SIZE; i++) {
+                int currentTile = current.board[i];
+                if (currentTile == EMPTY_TILE) {
+                    continue;
+                }
+                int goalIndex = -1;
+                for (int j = 0; j < SIZE * SIZE; j++) {
+                    if (goal.board[j] == currentTile) {
+                        goalIndex = j;
+                        break;
                     }
                 }
+                int currentRow = i / SIZE;
+                int currentCol = i % SIZE;
+                int goalRow = goalIndex / SIZE;
+                int goalCol = goalIndex % SIZE;
+                distance += abs(currentRow - goalRow) + abs(currentCol - goalCol);
             }
             return distance;
+        };
+
+        auto returnZero = [](const State&, const State&) {
+            return 0.0f;
         };
 
         auto getCost = [](const State&, const State&) {
@@ -98,7 +107,7 @@ public:
         
         return searcher.findPath(
             initial,
-            isGoal,
+            goal,
             getSuccessors,
             manhattanDistance,
             getCost,

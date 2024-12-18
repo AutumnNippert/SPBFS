@@ -23,7 +23,7 @@ public:
 
     virtual std::vector<State> findPath(
         const State& start,
-        IsGoal isGoal,
+        const State& goal,
         GetSuccessors getSuccessors,
         Heuristic heuristic,
         GetCost getCost,

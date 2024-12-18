@@ -12,15 +12,15 @@ namespace SlidingPuzzle {
     static constexpr int EMPTY_TILE = 0;
     
     struct Position {
-        int row, col;
+        int index;
         
         bool operator==(const Position& other) const {
-            return row == other.row && col == other.col;
+            return index == other.index;
         }
     };
 
     struct State {
-        vector<vector<int>> board;
+        vector<int> board;
         Position empty;
 
         bool operator==(const State& other) const {
@@ -34,59 +34,53 @@ namespace SlidingPuzzle {
 
         string toString() const {
             stringstream ss;
-            for (const auto& row : board) {
-                for (int val : row) {
-                    ss << val << ",";
-                }
+            for (int val : board) {
+                ss << val << ",";
             }
             return ss.str();
         }
     };
 
     inline std::ostream& operator<<(std::ostream& os, const State& state) {
-        for (const auto& row : state.board) {
-            for (int val : row) {
-                os << val << " ";
-            }
-            os << "\n";
+        for (int val : state.board) {
+            os << val << " ";
         }
+        os << "\n";
         return os;
     }
 
     inline State createGoalState() {
         State goal;
-        goal.board = vector<vector<int>>(SIZE, vector<int>(SIZE));
+        goal.board = vector<int>(SIZE * SIZE);
         int value = 1;
         
-        for (int i = 0; i < SIZE; i++) {
-            for (int j = 0; j < SIZE; j++) {
-                goal.board[i][j] = value++;
-            }
+        for (int i = 0; i < SIZE * SIZE; i++) {
+            goal.board[i] = value++;
         }
-        goal.board[SIZE-1][SIZE-1] = EMPTY_TILE;
-        goal.empty = {SIZE-1, SIZE-1};
+        goal.board[SIZE * SIZE - 1] = EMPTY_TILE;
+        goal.empty = {SIZE * SIZE - 1};
         return goal;
     }
 
     inline vector<Position> getValidMoves(const State& state) {
         vector<Position> moves;
-        const int dr[] = {-1, 1, 0, 0};  // up, down, left, right
-        const int dc[] = {0, 0, -1, 1};
-        
-        for (int i = 0; i < 4; i++) {
-            int newRow = state.empty.row + dr[i];
-            int newCol = state.empty.col + dc[i];
-            
-            if (newRow >= 0 && newRow < SIZE && newCol >= 0 && newCol < SIZE) {
-                moves.push_back({newRow, newCol});
-            }
+        if (state.empty.index % SIZE != 0) {
+            moves.push_back({state.empty.index - 1});
+        }
+        if (state.empty.index % SIZE != SIZE - 1) {
+            moves.push_back({state.empty.index + 1});
+        }
+        if (state.empty.index >= SIZE) {
+            moves.push_back({state.empty.index - SIZE});
+        }
+        if (state.empty.index < SIZE * (SIZE - 1)) {
+            moves.push_back({state.empty.index + SIZE});
         }
         return moves;
     }
 
     inline void applyMove(State& state, Position move) {
-        swap(state.board[state.empty.row][state.empty.col],
-             state.board[move.row][move.col]);
+        swap(state.board[state.empty.index], state.board[move.index]);
         state.empty = move;
     }
 } 

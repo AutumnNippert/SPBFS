@@ -19,6 +19,7 @@ private:
     using HashFn = typename Search<State, Cost>::HashFn;
 
     size_t fLayer = 0;
+    size_t minH = 0;
 
     struct Node {
         State state;
@@ -34,6 +35,7 @@ private:
         priority_queue<Node, vector<Node>, greater<>>& open,
         unordered_map<State, Node, HashFn>& closed,
         const Node& current,
+        const State& goal,
         GetSuccessorsFn getSuccessors,
         HeuristicFn heuristic,
         GetCostFn getCost
@@ -45,7 +47,7 @@ private:
 
             Node successor(successorPos);
             successor.g = tentativeG;
-            successor.h = heuristic(successorPos, successorPos);
+            successor.h = heuristic(successorPos, goal);
             successor.f = successor.g + successor.h;
             successor.parent = current.state;
 
@@ -92,7 +94,7 @@ private:
 public:
     vector<State> findPath(
         const State& start,
-        IsGoalFn isGoal,
+        const State& goal,
         GetSuccessorsFn getSuccessors,
         HeuristicFn heuristic,
         GetCostFn getCost,
@@ -104,12 +106,13 @@ public:
         std::cout << "Starting A* search" << std::endl;
 
         Node startNode(start);
-        startNode.h = heuristic(start, start);
+        startNode.h = heuristic(start, goal);
         startNode.f = startNode.h;
         open.push(startNode);
 
         std::cout << "Initial heuristic: " << startNode.h << std::endl;
         this->fLayer = startNode.f;
+        this->minH = startNode.h;
         
         this->generatedNodes = 1;
 
@@ -122,13 +125,18 @@ public:
                 this->fLayer = current.f;
             }
 
-            if (isGoal(current.state)) {
+            if (current.h < this->minH) {
+                std::cout << "New minimum heuristic found: " << current.h << std::endl;
+                this->minH = current.h;
+            }
+
+            if (current.h == 0) {
                 std::cout << "Goal found: " << current.state << std::endl;
                 return reconstructPath(current, closed);
             }
 
             closed[current.state] = current;
-            expand(open, closed, current, getSuccessors, heuristic, getCost);
+            expand(open, closed, current, goal, getSuccessors, heuristic, getCost);
         }
 
         return {};
