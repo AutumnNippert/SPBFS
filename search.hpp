@@ -10,7 +10,6 @@ public:
     using GetSuccessors = std::function<std::vector<State>(const State&)>;
     using Heuristic = std::function<Cost(const State&, const State&)>;
     using GetCost = std::function<Cost(const State&, const State&)>;
-    using IsGoal = std::function<bool(const State&)>;
     using HashFn = std::function<size_t(const State&)>;
 
     size_t expandedNodes = 0; // Number of nodes expanded during the search

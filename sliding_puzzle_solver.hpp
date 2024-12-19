@@ -12,7 +12,7 @@ class SlidingPuzzleSolver {
 public:
 
     static pair<State, State> parseInput(std::istream& input) {
-        State state;
+        State state = {};
         state.board.resize(SIZE * SIZE); // Adjusted to 1D array
         
         // Read dimensions
@@ -51,64 +51,62 @@ public:
         return {state, goal};
     }
 
+    static bool isGoal(const State& state, const State& goal) {
+        return state == goal;
+    }
+
+    static vector<State> getSuccessors(const State& state) {
+        vector<State> successors;
+        for (const auto& move : getValidMoves(state)) {
+            State newState = state;
+            applyMove(newState, move);
+            successors.push_back(newState);
+        }
+        return successors;
+    }
+
+    static int manhattanDistance(const State& current, const State& goal) {
+        int goalIndexLookup[SIZE * SIZE];
+        for (int i = 0; i < SIZE * SIZE; i++) {
+            goalIndexLookup[goal.board[i]] = i;
+        }
+
+        int distance = 0;
+        for (int i = 0; i < SIZE * SIZE; i++) {
+            int currentTile = current.board[i];
+            if (currentTile == EMPTY_TILE) {
+                continue;
+            }
+            int goalIndex = goalIndexLookup[currentTile];
+            int goalRow = goalIndex / SIZE;
+            int goalCol = goalIndex % SIZE;
+            int currentRow = i / SIZE;
+            int currentCol = i % SIZE;
+            distance += abs(goalRow - currentRow) + abs(goalCol - currentCol);
+        }
+        return distance - 1;
+    }
+
+    static float returnZero(const State&, const State&) {
+        return 0.0f;
+    }
+
+    static float getCost(const State&, const State&) {
+        return 1.0f;  // Each move costs 1
+    }
+
+    static size_t hash(const State& state) {
+        size_t h = state.board[0];
+        for (int i = 1; i < SlidingPuzzle::SIZE * SlidingPuzzle::SIZE; i++)
+            h += h * 3 + state.board[i];
+        return h;
+    }
+
     static vector<State> solve(
         const State& initial,
         const State& goal,
         Search<State, float>& searcher
     ) {
-
-        auto isGoal = [&goal](const State& state) {
-            return state == goal;
-        };
-
-        auto getSuccessors = [](const State& state) {
-            vector<State> successors;
-            for (const auto& move : getValidMoves(state)) {
-                State newState = state;
-                applyMove(newState, move);
-                successors.push_back(newState);
-            }
-            return successors;
-        };
-
-        auto manhattanDistance = [](const State& current, const State& goal) {
-            // for each tile in the current state, calculate the manhattan distance to the goal state and sum them up
-
-            int goalIndexLookup[SIZE * SIZE];
-            for (int i = 0; i < SIZE * SIZE; i++) {
-                goalIndexLookup[goal.board[i]] = i;
-            }
-
-            int distance = 0;
-            for (int i = 0; i < SIZE * SIZE; i++) {
-                int currentTile = current.board[i];
-                if (currentTile == EMPTY_TILE) {
-                    continue;
-                }
-                int goalIndex = goalIndexLookup[currentTile];
-                int goalRow = goalIndex / SIZE;
-                int goalCol = goalIndex % SIZE;
-                int currentRow = i / SIZE;
-                int currentCol = i % SIZE;
-                distance += abs(goalRow - currentRow) + abs(goalCol - currentCol);
-            }
-            return distance - 1;
-        };
-
-        auto returnZero = [](const State&, const State&) {
-            return 0.0f;
-        };
-
-        auto getCost = [](const State&, const State&) {
-            return 1.0f;  // Each move costs 1
-        };
-
-        auto hash = [](const State& state) -> size_t {
-            size_t h = state.board[0];
-            for (int i = 1; i < SlidingPuzzle::SIZE * SlidingPuzzle::SIZE; i++)
-                h += h * 3 + state.board[i];
-            return h;
-        };
         
         searcher.initialize(initial, goal, getSuccessors, manhattanDistance, getCost, hash);
         return searcher.findPath();

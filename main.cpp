@@ -1,6 +1,5 @@
 #include "sliding_puzzle_solver.hpp"
 #include "astar.hpp"
-#include "greedy.hpp"
 
 #include <iostream>
 
@@ -40,11 +39,16 @@ int main(int argc, char* argv[]) {
 
     Search<SlidingPuzzle::State, float>* searcher;
     if (algorithmChoice == "greedy") {
-        searcher = new Greedy<SlidingPuzzle::State, float>();
+        // searcher = new Greedy<SlidingPuzzle::State, float>();
     } else if (algorithmChoice == "astar") {
         searcher = new AStar<SlidingPuzzle::State, float>();
     } else {
         std::cerr << "Invalid algorithm choice. Please choose 'greedy' or 'astar'." << std::endl;
+        return 1;
+    }
+
+    if (searcher == nullptr) {
+        std::cerr << "Searcher is uninitialized." << std::endl;
         return 1;
     }
 

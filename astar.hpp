@@ -10,19 +10,18 @@ using namespace std;
 
 template<typename State, typename Cost = float>
 class AStar : public Search<State, Cost> {
-    using IsGoalFn = typename Search<State, Cost>::IsGoal;
-    using GetSuccessorsFn = typename Search<State, Cost>::GetSuccessors;
-    using HeuristicFn = typename Search<State, Cost>::Heuristic;
-    using GetCostFn = typename Search<State, Cost>::GetCost;
+    using GetSuccessors = typename Search<State, Cost>::GetSuccessors;
+    using Heuristic = typename Search<State, Cost>::Heuristic;
+    using GetCost = typename Search<State, Cost>::GetCost;
     using HashFn = typename Search<State, Cost>::HashFn;
 
 public:
     void initialize(
         const State& i_start,
         const State& i_goal,
-        GetSuccessorsFn i_getSuccessors,
-        HeuristicFn i_heuristic,
-        GetCostFn i_getCost,
+        GetSuccessors i_getSuccessors,
+        Heuristic i_heuristic,
+        GetCost i_getCost,
         HashFn i_hash = nullptr
     ) override {
         this->goal = i_goal;
@@ -133,7 +132,7 @@ private:
 
     static vector<State> reconstructPath(
         const Node& goal,
-        const unordered_map<State, Node, typename Search<State, Cost>::HashFn>& closed
+        const unordered_map<State, Node, HashFn>& closed
     ) {
         vector<State> path;
         State current = goal.state;
