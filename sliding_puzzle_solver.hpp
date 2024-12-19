@@ -110,13 +110,7 @@ public:
             return h;
         };
         
-        return searcher.findPath(
-            initial,
-            goal,
-            getSuccessors,
-            manhattanDistance,
-            getCost,
-            hash
-        );
+        searcher.initialize(initial, goal, getSuccessors, manhattanDistance, getCost, hash);
+        return searcher.findPath();
     }
 };

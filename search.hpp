@@ -16,19 +16,30 @@ public:
     size_t expandedNodes = 0; // Number of nodes expanded during the search
     size_t generatedNodes = 0; // Number of nodes generated during the search
     size_t duplicatedNodes = 0; // Number of nodes duplicated during the search
-    double maxF = 0; // Maximum f value of a node during the search
 
-    // Virtual destructor for proper inheritance
-    virtual ~Search() = default;
+    State start;
+    State goal;
+    GetSuccessors getSuccessors;
+    Heuristic heuristic;
+    GetCost getCost;
+    HashFn hash;
 
-    virtual std::vector<State> findPath(
+    Search(): start(), goal(), getSuccessors(nullptr), heuristic(nullptr), getCost(nullptr), hash(nullptr) {}
+
+    virtual void initialize( // Initialize the search with the given parameters after construction
         const State& start,
         const State& goal,
         GetSuccessors getSuccessors,
         Heuristic heuristic,
         GetCost getCost,
-        HashFn hash = nullptr
-    ) = 0;
+        HashFn hashFunction = nullptr
+    );
+
+
+    // Virtual destructor for proper inheritance
+    virtual ~Search() = default;
+
+    virtual std::vector<State> findPath();
 
     // Function to print search statistics
     void printStats() {

@@ -4,12 +4,39 @@
 
 #include <iostream>
 
+#include <getopt.h>
+
 int main(int argc, char* argv[]) {
-    if (argc != 3) {
-        std::cerr << "Usage: " << argv[0] << " <algorithm> (greedy or astar) <problem> (tiles)" << std::endl;
-        return 1;
+    int c;
+    std::string algorithmChoice = "astar"; // Default algorithm
+    std::string problem = "tiles"; // Default problem
+    int threadCount = 1; // Default thread count
+
+    static struct option long_options[] =
+    {
+        {"algorithm", required_argument, 0, 'a'},
+        {"problem", required_argument, 0, 'p'},
+        {"threads", required_argument, 0, 't'},
+        {0, 0, 0, 0}
+    };
+
+    int option_index = 0;
+    while ((c = getopt_long(argc, argv, "a:p:t:", long_options, &option_index)) != -1) {
+        switch (c) {
+            case 'a':
+                algorithmChoice = optarg;
+                break;
+            case 'p':
+                problem = optarg;
+                break;
+            case 't':
+                threadCount = std::stoi(optarg); // Convert string to int
+                break;
+            default:
+                std::cerr << "Usage: " << argv[0] << " [-a <algorithm>] [-p <problem>] [-t <thread count>]" << std::endl;
+                return 1;
+        }
     }
-    std::string algorithmChoice = argv[1];
 
     Search<SlidingPuzzle::State, float>* searcher;
     if (algorithmChoice == "greedy") {
@@ -20,8 +47,6 @@ int main(int argc, char* argv[]) {
         std::cerr << "Invalid algorithm choice. Please choose 'greedy' or 'astar'." << std::endl;
         return 1;
     }
-
-    std::string problem = argv[2];
 
     if (problem == "tiles") {
         auto instance = SlidingPuzzleSolver::parseInput(std::cin);
@@ -36,7 +61,6 @@ int main(int argc, char* argv[]) {
         std::cerr << "Invalid problem choice. Please choose 'tiles'." << std::endl;
         return 1;
     }
-
 
     delete searcher; // Cleanup dynamically allocated memory
     return 0;
