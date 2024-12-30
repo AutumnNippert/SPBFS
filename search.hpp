@@ -32,13 +32,13 @@ public:
         Heuristic heuristic,
         GetCost getCost,
         HashFn hashFunction = nullptr
-    );
+    ) = 0;
 
 
     // Virtual destructor for proper inheritance
     virtual ~Search() = default;
 
-    virtual std::vector<State> findPath();
+    virtual std::vector<State> findPath() = 0;
 
     // Function to print search statistics
     void printStats() {

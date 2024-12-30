@@ -49,10 +49,17 @@ namespace SlidingPuzzle {
     };
 
     inline std::ostream& operator << (std::ostream& os, const State& state) {
-        for (int val : state.board) {
-            os << val << " ";
+        // for (int val : state.board) {
+        //     os << val << " ";
+        // }
+        // os << "\n";
+        // return os;
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                fprintf(stdout, "%2d ", state.board[i * SIZE + j]);
+            }
+            fprintf(stdout, "\n");
         }
-        os << "\n";
         return os;
     }
 
@@ -71,14 +78,14 @@ namespace SlidingPuzzle {
 
     inline vector<Position> getValidMoves(const State& state) {
         vector<Position> moves;
-        if (state.empty.index % SIZE != 0) {
-            moves.push_back({state.empty.index - 1});
-        }
-        if (state.empty.index % SIZE != SIZE - 1) {
-            moves.push_back({state.empty.index + 1});
-        }
         if (state.empty.index >= SIZE) {
             moves.push_back({state.empty.index - SIZE});
+        }
+        if (state.empty.index % SIZE > 0) {
+            moves.push_back({state.empty.index - 1});
+        }
+        if (state.empty.index % SIZE < SIZE - 1) {
+            moves.push_back({state.empty.index + 1});
         }
         if (state.empty.index < SIZE * (SIZE - 1)) {
             moves.push_back({state.empty.index + SIZE});

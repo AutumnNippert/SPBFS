@@ -78,13 +78,9 @@ public:
                 continue;
             }
             int goalIndex = goalIndexLookup[currentTile];
-            int goalRow = goalIndex / SIZE;
-            int goalCol = goalIndex % SIZE;
-            int currentRow = i / SIZE;
-            int currentCol = i % SIZE;
-            distance += abs(goalRow - currentRow) + abs(goalCol - currentCol);
+            distance += abs(goalIndex / SIZE - i / SIZE) + abs(goalIndex % SIZE - i % SIZE);
         }
-        return distance - 1;
+        return distance;
     }
 
     static float returnZero(const State&, const State&) {
@@ -107,7 +103,7 @@ public:
         const State& goal,
         Search<State, float>& searcher
     ) {
-        
+        SlidingPuzzleSolver solver;
         searcher.initialize(initial, goal, getSuccessors, manhattanDistance, getCost, hash);
         return searcher.findPath();
     }

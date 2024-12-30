@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -std=c++23 #-O3 #-Wall -Wextra
+CXXFLAGS = -std=c++23 -Wall -Wextra -g
 
 # Output binary
 TARGET = main

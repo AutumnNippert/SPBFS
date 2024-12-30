@@ -60,6 +60,11 @@ int main(int argc, char* argv[]) {
             std::cout << "No solution found!\n";
         } else {
             std::cout << "Solution found in " << solution.size() - 1 << " moves\n";
+            std::cout << "Solution:\n";
+            // print all states in the solution
+            for (const auto& state : solution) {
+                std::cout << state;
+            }
         }
     } else {
         std::cerr << "Invalid problem choice. Please choose 'tiles'." << std::endl;

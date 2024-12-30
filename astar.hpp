@@ -1,7 +1,8 @@
 #pragma once
 #include "search.hpp"
 #include <queue>
-#include <unordered_map>
+// #include <unordered_map>
+#include <boost/unordered/unordered_flat_map.hpp>
 #include <algorithm>
 #include <vector>
 #include <iostream>
@@ -31,7 +32,7 @@ public:
         this->getCost = i_getCost;
         this->hash = i_hash;
         open = priority_queue<Node, vector<Node>, greater<>>();
-        closed = unordered_map<State, Node, HashFn>(0, this->hash);
+        closed = boost::unordered_flat_map<State, Node, HashFn>(0, this->hash);
     }
 
     vector<State> findPath() override {
@@ -65,7 +66,7 @@ public:
                 return reconstructPath(current, closed);
             }
 
-            closed[current.state] = current;
+            closed.emplace(current.state, current);
             expand(current);
         }
 
@@ -96,7 +97,7 @@ private:
     size_t minH = 0;
 
     priority_queue<Node, vector<Node>, greater<>> open;
-    unordered_map<State, Node, HashFn> closed;
+    boost::unordered_flat_map<State, Node, HashFn> closed;
 
     void expand(Node n) {
         this->expandedNodes++;
@@ -114,14 +115,9 @@ private:
             auto it = closed.find(successorPos);
             if (it != closed.end()) { 
                 this->duplicatedNodes++;
-                if (it->second.f >= successor.f) {
-                    closed.erase(it); // remove it because it's worse than the current successor
-                } else {
-                    continue;
-                }
-            }
-
-            closed[successorPos] = successor;
+                if (it->second.f >= successor.f) it->second = successor; // update it because it's worse than the current successor
+                else continue;
+            } else closed.emplace(successorPos, successor);
 
             // Add successor to open list
             open.push(successor);
@@ -132,7 +128,7 @@ private:
 
     static vector<State> reconstructPath(
         const Node& goal,
-        const unordered_map<State, Node, HashFn>& closed
+        const boost::unordered_flat_map<State, Node, HashFn>& closed
     ) {
         vector<State> path;
         State current = goal.state;
