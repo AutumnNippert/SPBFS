@@ -1,9 +1,17 @@
-#include "sliding_puzzle_solver.hpp"
+#include "sliding_puzzle.hpp"
+#include "path_finding.hpp"
 #include "astar.hpp"
 
 #include <iostream>
 
 #include <getopt.h>
+
+template <typename State>
+void print_path(const std::vector<State>& path) {
+    for (const auto& state : path) {
+        std::cout << state << std::endl;
+    }
+}
 
 int main(int argc, char* argv[]) {
     int c;
@@ -36,41 +44,25 @@ int main(int argc, char* argv[]) {
                 return 1;
         }
     }
-
-    Search<SlidingPuzzle::State, float>* searcher;
-    if (algorithmChoice == "greedy") {
-        // searcher = new Greedy<SlidingPuzzle::State, float>();
-    } else if (algorithmChoice == "astar") {
-        searcher = new AStar<SlidingPuzzle::State, float>();
-    } else {
-        std::cerr << "Invalid algorithm choice. Please choose 'greedy' or 'astar'." << std::endl;
-        return 1;
-    }
-
-    if (searcher == nullptr) {
-        std::cerr << "Searcher is uninitialized." << std::endl;
-        return 1;
-    }
+    
+    std::cout << "Algorithm: " << algorithmChoice << std::endl;
+    std::cout << "Problem: " << problem << std::endl;
+    std::cout << "Thread count: " << threadCount << std::endl;
 
     if (problem == "tiles") {
-        auto instance = SlidingPuzzleSolver::parseInput(std::cin);
-        std::cout << "Beginning " << algorithmChoice << " search for sliding puzzle problem\n"; 
-        auto solution = SlidingPuzzleSolver::solve(instance.first, instance.second, *searcher);
-        if (solution.empty()) {
-            std::cout << "No solution found!\n";
-        } else {
-            std::cout << "Solution found in " << solution.size() - 1 << " moves\n";
-            std::cout << "Solution:\n";
-            // print all states in the solution
-            for (const auto& state : solution) {
-                std::cout << state;
-            }
-        }
-    } else {
-        std::cerr << "Invalid problem choice. Please choose 'tiles'." << std::endl;
-        return 1;
+        using namespace SlidingPuzzle;
+        auto [initial, goal] = SlidingPuzzleSolver::parseInput(std::cin);
+        AStar<State> searcher;
+        searcher.initialize(initial, goal, SlidingPuzzleSolver::getSuccessors, SlidingPuzzleSolver::manhattanDistance, SlidingPuzzleSolver::getCost, SlidingPuzzleSolver::hash);
+        auto path = searcher.findPath();
+        print_path(path);
+    } else if (problem == "path") {
+        using namespace Pathfinding;
+        auto [initial, goal] = PathfindingSolver::parseInput(std::cin);
+        AStar<State> searcher;
+        searcher.initialize(initial, goal, PathfindingSolver::getSuccessors, PathfindingSolver::furthestDistance, PathfindingSolver::getCost, PathfindingSolver::hash);
+        auto path = searcher.findPath();
+        print_path(path);
     }
-
-    delete searcher; // Cleanup dynamically allocated memory
     return 0;
 } 

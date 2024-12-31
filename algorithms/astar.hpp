@@ -42,26 +42,28 @@ public:
         startNode.f = startNode.h;
         open.push(startNode);
 
-        std::cout << "Initial heuristic: " << startNode.h << std::endl;
+        cout << "Initial heuristic: " << endl << startNode.h << endl;
         this->fLayer = startNode.f;
         this->minH = startNode.h;
+
+        cout << "Initial state: " << this->start.toString() << endl;
 
         while (!open.empty()) {
             Node current = open.top();
             open.pop();
 
             if (current.f > fLayer) {
-                // std::cout << "New f layer reached: " << current.f << std::endl;
+                std::cout << "New f layer reached: " << current.f << std::endl;
                 fLayer = current.f;
             }
 
             if (current.h < minH) {
-                std::cout << "New minimum heuristic found: " << current.h << std::endl;
+                cout << "New minimum heuristic found: " << current.h << endl;
                 minH = current.h;
             }
 
             if (current.h == 0) {
-                std::cout << "Goal found: " << std::endl;
+                cout << "Goal found: " << endl;
                 this->printStats();
                 return reconstructPath(current, closed);
             }
@@ -70,7 +72,7 @@ public:
             expand(current);
         }
 
-
+        cout << "No path found" << endl;
         this->printStats();
         return {};
     }

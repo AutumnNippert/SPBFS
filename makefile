@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -std=c++23 -Wall -Wextra -g
+CXXFLAGS = -std=c++23 -Wall -Wextra -g -I ./problems -I ./algorithms -I .
 
 # Output binary
 TARGET = main
@@ -8,7 +8,7 @@ TARGET = main
 SRCS = main.cpp
 
 # Header files
-HEADERS = search.hpp astar.hpp sliding_puzzle.hpp sliding_puzzle_solver.hpp
+HEADERS = search.hpp astar.hpp sliding_puzzle.hpp path_finding.hpp
 
 # Object files
 OBJS = $(SRCS:.cpp=.o)
