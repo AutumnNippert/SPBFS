@@ -53,17 +53,18 @@ public:
             open.pop();
 
             if (current.f > fLayer) {
-                std::cout << "New f layer reached: " << current.f << std::endl;
+                // std::cout << "New f layer reached: " << current.f << std::endl;
                 fLayer = current.f;
             }
 
             if (current.h < minH) {
-                cout << "New minimum heuristic found: " << current.h << endl;
+                // cout << "New minimum heuristic found: " << current.h << endl;
                 minH = current.h;
             }
 
             if (current.h == 0) {
                 cout << "Goal found: " << endl;
+                cout << "Path Length: " << current.g << endl;
                 this->printStats();
                 return reconstructPath(current, closed);
             }

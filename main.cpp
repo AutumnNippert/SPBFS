@@ -55,14 +55,14 @@ int main(int argc, char* argv[]) {
         AStar<State> searcher;
         searcher.initialize(initial, goal, SlidingPuzzleSolver::getSuccessors, SlidingPuzzleSolver::manhattanDistance, SlidingPuzzleSolver::getCost, SlidingPuzzleSolver::hash);
         auto path = searcher.findPath();
-        print_path(path);
+        // print_path(path);
     } else if (problem == "path") {
         using namespace Pathfinding;
         auto [initial, goal] = PathfindingSolver::parseInput(std::cin);
         AStar<State> searcher;
         searcher.initialize(initial, goal, PathfindingSolver::getSuccessors, PathfindingSolver::furthestDistance, PathfindingSolver::getCost, PathfindingSolver::hash);
         auto path = searcher.findPath();
-        print_path(path);
+        // print_path(path);
     }
     return 0;
 } 
