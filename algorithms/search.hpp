@@ -1,6 +1,6 @@
 #pragma once
 
-#include "problem.hpp"
+#include "problem_instance.hpp"
 #include <vector>
 #include <functional>
 #include <iostream>
@@ -9,16 +9,10 @@ template<typename State, typename Cost = float>
 class Search {
 public:
 
-    Search(ProblemInstance<State, Cost>& problemInstance){
+    Search(const ProblemInstance<State, Cost>& problemInstance): problemInstance(problemInstance) {
         std::cout << "Constructing a Search" << std::endl;
         std::cout << "&" << &problemInstance << std::endl;
         std::cout << problemInstance.initial_state << std::endl;
-        this->start = problemInstance.initial_state;
-        this->goal = problemInstance.initial_state;
-        this->getSuccessors = std::bind(&ProblemInstance<State, Cost>::getSuccessors, &problemInstance, std::placeholders::_1);
-        this->heuristic = std::bind(&ProblemInstance<State, Cost>::heuristic, &problemInstance, std::placeholders::_1, std::placeholders::_2);
-        this->getCost = std::bind(&ProblemInstance<State, Cost>::getCost, &problemInstance, std::placeholders::_1, std::placeholders::_2);
-        this->hash = std::bind(&ProblemInstance<State, Cost>::hash, &problemInstance, std::placeholders::_1);
     }
 
     // Function type definitions
@@ -31,12 +25,8 @@ public:
     size_t generatedNodes = 0; // Number of nodes generated during the search
     size_t duplicatedNodes = 0; // Number of nodes duplicated during the search
 
-    State start;
-    State goal;
-    GetSuccessors getSuccessors;
-    Heuristic heuristic;
-    GetCost getCost;
-    HashFn hash;
+    State start, goal;
+    const ProblemInstance<State, Cost>& problemInstance;
 
     virtual std::vector<State> findPath() = 0;
 

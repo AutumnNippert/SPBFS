@@ -20,7 +20,10 @@ public:
     AStar(ProblemInstance<State, Cost>& problemInstance) 
         : Search<State, Cost>(problemInstance) {
         open = priority_queue<Node, vector<Node>, greater<>>();
-        closed = boost::unordered_flat_map<State, Node, HashFn>(0, this->hash);
+        closed = boost::unordered_flat_map<State, Node, HashFn>(0,     
+        [this](const State& state) {
+            return this->problemInstance.hash(state);
+        });
         cout << "Constructing an AStar" << endl;
         cout << "&" << &problemInstance<< endl;
         cout << "Start State: " << this->start.toString() << endl;
@@ -30,7 +33,7 @@ public:
     vector<State> findPath() override {
 
         Node startNode(this->start);
-        startNode.h = this->heuristic(this->start, this->goal);
+        startNode.h = this->problemInstance.heuristic(this->start);
         startNode.f = startNode.h;
         open.push(startNode);
 
@@ -96,13 +99,13 @@ private:
 
     void expand(Node n) {
         this->expandedNodes++;
-        for (const auto& successorPos : this->getSuccessors(n.state)) {
+        for (const auto& successorPos : this->problemInstance.getSuccessors(n.state)) {
 
-            Cost tentativeG = n.g + this->getCost(n.state, successorPos);
+            Cost tentativeG = n.g + this->problemInstance.getCost(n.state, successorPos);
 
             Node successor(successorPos);
             successor.g = tentativeG;
-            successor.h = this->heuristic(successorPos, this->goal);
+            successor.h = this->problemInstance.heuristic(successorPos);
             successor.f = n.g + successor.h;
             successor.parent = n.state;
 

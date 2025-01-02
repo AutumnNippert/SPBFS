@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -std=c++23 -Wall -Wextra -g -I ./problems -I ./algorithms -I . -Wno-unused-parameter
+CXXFLAGS = -std=c++23 -Wall -Wextra -g -I ./problems -I ./algorithms -I ./utils -I . -Wno-unused-parameter
 
 # Output binary
 TARGET = main

@@ -6,7 +6,8 @@
 #include <iostream>
 
 #include "search.hpp"
-#include "problem.hpp"
+#include "problem_instance.hpp"
+#include "position.hpp"
 #include <cmath>
 
 #include <boost/unordered/unordered_flat_map.hpp>
@@ -15,29 +16,14 @@
 using namespace std;
 
 namespace Pathfinding {
-    // static constexpr int SIZE = 5;  // 5x5 grid
     static constexpr char GOAL = '*'; // Represents an empty cell
     static constexpr char WALL = '#'; // Represents a wall
     static constexpr char EMPTY_TILE = '_'; // Represents an empty tile
     static constexpr char ACTOR = 'V'; // Represents the actor
 
-    struct Position {
-        size_t row, col;
-
-        bool operator==(const Position& other) const {
-            return row == other.row && col == other.col;
-        }
-    };
-
-    struct PositionHash {
-        size_t operator()(const Position& pos) const {
-            return pos.row * 1000 + pos.col;
-        }
-    };
-
     struct State {
         Position actor; // current position of the actor
-        boost::unordered_set<Position, PositionHash> goals;
+        boost::unordered_set<Position, PositionHash> goals; // set of goal positions
 
         bool operator==(const State& other) const {
             return actor == other.actor && goals == other.goals;
@@ -79,12 +65,16 @@ namespace Pathfinding {
             cout << initial_state << endl;
         }
 
+        /**
+         * Parse the input for the pathfinding problem and return the instance
+         */
         static PathfindingInstance parseInput(std::istream& input) {
             State state;
             string line;
             size_t dimr, dimc;
             boost::unordered_set<Position, PositionHash> walls;
             
+            // read dimensions
             input >> dimr >> dimc;
             input.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Discard the leftover newline
             getline(input, line);
@@ -109,27 +99,8 @@ namespace Pathfinding {
             return PathfindingInstance(dimr, dimc, walls, state);
         }
 
-        float heuristic(const State& state, const State& goal) override {
-            size_t dirtCount = state.goals.size();
-            cout << "Dirt count: " << dirtCount << endl;
-            return dirtCount;
-        }
-
-        bool isGoal(const State& state, const State& goal) {
-            return state.goals.empty();
-        }
-
-        vector<State> getSuccessors(const State& state) override {
-            vector<State> successors;
-            for (const auto& move : getValidMoves(state)) {
-                State newState = state;
-                applyMove(newState, move);
-                successors.push_back(newState);
-            }
-            return successors;
-        }
-
-        vector<Position> getValidMoves(const State& state) {
+        // Gets valid moves up, down, left, and right if no obstacles and within bounds
+        inline vector<Position> getValidMoves(const State& state) const {
             vector<Position> moves;
             size_t row = state.actor.row;
             size_t col = state.actor.col;
@@ -141,11 +112,30 @@ namespace Pathfinding {
             return moves;
         }
 
-        float getCost(const State&, const State&) override {
+        // The functions required by ProblemInstance
+
+        // Basic heuristic that returns the number of dirt cells left
+        float heuristic(const State& state) const override {
+            size_t dirtCount = state.goals.size();
+            cout << "Dirt count: " << dirtCount << endl;
+            return dirtCount;
+        }
+
+        vector<State> getSuccessors(const State& state) const override {
+            vector<State> successors;
+            for (const auto& move : this->getValidMoves(state)) {
+                State newState = state;
+                applyMove(newState, move);
+                successors.push_back(newState);
+            }
+            return successors;
+        }
+
+        float getCost(const State&, const State&) const override {
             return 1.0f; // Each move costs 1
         }
 
-        size_t hash(const State& state) override {
+        size_t hash(const State& state) const override {
             size_t h = state.actor.row * dimc + state.actor.col;
             for (const auto& goal : state.goals) {
                 h += goal.row * dimc + goal.col;
@@ -154,9 +144,9 @@ namespace Pathfinding {
         }
 
     private:
-        size_t dimr = 0;
-        size_t dimc = 0;
-        boost::unordered_set<Position,PositionHash> walls;
-        State initial_state;
+        size_t dimr = 0; // Number of rows in the grid
+        size_t dimc = 0; // Number of columns in the grid
+        boost::unordered_set<Position,PositionHash> walls; // Set of wall positions
+        State initial_state; // Initial state of the problem
     };
 }

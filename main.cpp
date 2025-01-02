@@ -1,4 +1,4 @@
-// #include "sliding_puzzle.hpp"
+#include "sliding_puzzle.hpp"
 #include "path_finding.hpp"
 #include "astar.hpp"
 
@@ -50,11 +50,10 @@ int main(int argc, char* argv[]) {
     std::cout << "Thread count: " << threadCount << std::endl;
 
     if (problem == "tiles") {
-        // using namespace SlidingPuzzle;
-        // auto [initial, goal] = SlidingPuzzleSolver::parseInput(std::cin);
-        // AStar<State> searcher;
-        // searcher.initialize(initial, goal, SlidingPuzzleSolver::getSuccessors, SlidingPuzzleSolver::manhattanDistance, SlidingPuzzleSolver::getCost, SlidingPuzzleSolver::hash);
-        // auto path = searcher.findPath();
+        using namespace SlidingPuzzle;
+        auto instance = SlidingTileInstance<State>::parseInput(std::cin);
+        AStar<State> searcher(instance);
+        auto path = searcher.findPath();
         // print_path(path);
     } else if (problem == "path") {
         using namespace Pathfinding;

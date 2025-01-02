@@ -13,18 +13,12 @@ using namespace std;
 namespace SlidingPuzzle {
     static constexpr int SIZE = 4;  // 4x4 puzzle
     static constexpr int EMPTY_TILE = 0;
-    
-    struct Position {
-        int index;
-        
-        bool operator==(const Position& other) const {
-            return index == other.index;
-        }
-    };
+
+    typedef size_t position;
 
     struct State {
         vector<int> board;
-        Position empty;
+        position empty; // position of the empty tile
 
         bool operator == (const State& other) const {
             return board == other.board;
@@ -61,99 +55,75 @@ namespace SlidingPuzzle {
         return os;
     }
 
-    inline State createGoalState() {
-        State goal;
-        goal.board = vector<int>(SIZE * SIZE);
-        int value = 1;
-        
-        for (int i = 0; i < SIZE * SIZE; i++) {
-            goal.board[i] = value++;
-        }
-        goal.board[SIZE * SIZE - 1] = EMPTY_TILE;
-        goal.empty = {SIZE * SIZE - 1};
-        return goal;
-    }
-
-    inline vector<Position> getValidMoves(const State& state) {
-        vector<Position> moves;
-        if (state.empty.index >= SIZE) {
-            moves.push_back({state.empty.index - SIZE});
-        }
-        if (state.empty.index % SIZE > 0) {
-            moves.push_back({state.empty.index - 1});
-        }
-        if (state.empty.index % SIZE < SIZE - 1) {
-            moves.push_back({state.empty.index + 1});
-        }
-        if (state.empty.index < SIZE * (SIZE - 1)) {
-            moves.push_back({state.empty.index + SIZE});
-        }
-        return moves;
-    }
-
-    inline void applyMove(State& state, Position move) {
-        swap(state.board[state.empty.index], state.board[move.index]);
+    inline void applyMove(State& state, position move) {
+        swap(state.board[state.empty], state.board[move]);
         state.empty = move;
     }
 
-    class SlidingPuzzleSolver {
+    template<typename State, typename Cost = float>
+    class SlidingTileInstance: public ProblemInstance<State, Cost> {
     public:
+        SlidingTileInstance(const State& initial, const State& goal) {
+            this->initial_state = initial;
+            this->goal = goal;
+            std::cout << "Constructing a SlidingTileInstance" << std::endl;
+        }
 
-        static pair<State, State> parseInput(std::istream& input) {
-            State state = {};
-            state.board.resize(SIZE * SIZE); // Adjusted to 1D array
-            
+        static SlidingTileInstance parseInput(std::istream& input) {
+            State state, goal;
+            std::string line; // for inputs
+
+            state.board.resize(SIZE * SIZE); 
+            goal.board.resize(SIZE * SIZE);
+
             // Read dimensions
             int rows, cols;
             input >> rows >> cols;
-
-            std::cout << "Rows: " << rows << ", Cols: " << cols << std::endl;
-
-            // Skip the "starting positions for each tile:" line
-            std::string line;
-            std::getline(input, line); // Read the line "starting positions for each tile:"
+            
+            std::getline(input, line); // Skip the "starting positions for each tile:" line
 
             // Read starting positions for each tile
-            for (int i = 0; i < SIZE * SIZE; i++) {
-                std::getline(input, line); // Read the line "starting positions for each tile:"
+            for (size_t i = 0; i < SIZE * SIZE; i++) {
+                std::getline(input, line); 
                 input >> state.board[i];
                 if (state.board[i] == EMPTY_TILE) {
-                    state.empty.index = i;  // Set the position of the empty tile
+                    state.empty = i;  // Set the position of the empty tile
                 }
             }
 
-            // Skip the "goal positions:" line
-            std::getline(input, line); 
-            State goal;
-            goal.board.resize(SIZE * SIZE); // Adjusted to 1D array
+            std::getline(input, line); // Skip the "goal positions:" line
             
             // Read goal positions
-            for (int i = 0; i < SIZE * SIZE; i++) {
+            for (size_t i = 0; i < SIZE * SIZE; i++) {
                 std::getline(input, line); // Read the line "starting positions for each tile:"
                 input >> goal.board[i];
                 if (goal.board[i] == EMPTY_TILE) {
-                    goal.empty.index = i;  // Set the position of the empty tile in the goal state
+                    goal.empty = i;  // Set the position of the empty tile in the goal state
                 }
             }
-
-            return {state, goal};
+            return SlidingTileInstance(state, goal);
         }
 
-        static bool isGoal(const State& state, const State& goal) {
-            return state == goal;
-        }
-
-        static vector<State> getSuccessors(const State& state) {
-            vector<State> successors;
-            for (const auto& move : getValidMoves(state)) {
-                State newState = state;
-                applyMove(newState, move);
-                successors.push_back(newState);
+        inline vector<position> getValidMoves(const State& state) const {
+            vector<position> moves;
+            if (state.empty >= SIZE) {
+                moves.push_back({state.empty - SIZE});
             }
-            return successors;
+            if (state.empty % SIZE > 0) {
+                moves.push_back({state.empty - 1});
+            }
+            if (state.empty % SIZE < SIZE - 1) {
+                moves.push_back({state.empty + 1});
+            }
+            if (state.empty < SIZE * (SIZE - 1)) {
+                moves.push_back({state.empty + SIZE});
+            }
+            return moves;
         }
+        
+        // The functions required by ProblemInstance
 
-        static int manhattanDistance(const State& current, const State& goal) {
+        float heuristic(const State& state) const override {
             int goalIndexLookup[SIZE * SIZE];
             for (int i = 0; i < SIZE * SIZE; i++) {
                 goalIndexLookup[goal.board[i]] = i;
@@ -161,7 +131,7 @@ namespace SlidingPuzzle {
 
             int distance = 0;
             for (int i = 0; i < SIZE * SIZE; i++) {
-                int currentTile = current.board[i];
+                int currentTile = state.board[i];
                 if (currentTile == EMPTY_TILE) {
                     continue;
                 }
@@ -171,29 +141,28 @@ namespace SlidingPuzzle {
             return distance;
         }
 
-        static float returnZero(const State&, const State&) {
-            return 0.0f;
+        vector<State> getSuccessors(const State& state) const override {
+            vector<State> successors;
+            for (const auto& move : getValidMoves(state)) {
+                State newState = state;
+                applyMove(newState, move);
+                successors.push_back(newState);
+            }
+            return successors;
         }
 
-        static float getCost(const State&, const State&) {
+        float getCost(const State&, const State&) const override {
             return 1.0f;  // Each move costs 1
         }
 
-        static size_t hash(const State& state) {
+        size_t hash(const State& state) const override {
             size_t h = state.board[0];
             for (int i = 1; i < SlidingPuzzle::SIZE * SlidingPuzzle::SIZE; i++)
                 h += h * 3 + state.board[i];
             return h;
         }
 
-        // static vector<State> solve(
-        //     const State& initial,
-        //     const State& goal,
-        //     Search<State, float>& searcher
-        // ) {
-        //     SlidingPuzzleSolver solver;
-        //     searcher.initialize(initial, goal, getSuccessors, manhattanDistance, getCost, hash);
-        //     return searcher.findPath();
-        // }
+    private:
+        State goal;
     };
 }
