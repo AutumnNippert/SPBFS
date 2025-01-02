@@ -1,4 +1,6 @@
 #pragma once
+
+#include "problem.hpp"
 #include <vector>
 #include <functional>
 #include <iostream>
@@ -6,6 +8,19 @@
 template<typename State, typename Cost = float>
 class Search {
 public:
+
+    Search(ProblemInstance<State, Cost>& problemInstance){
+        std::cout << "Constructing a Search" << std::endl;
+        std::cout << "&" << &problemInstance << std::endl;
+        std::cout << problemInstance.initial_state << std::endl;
+        this->start = problemInstance.initial_state;
+        this->goal = problemInstance.initial_state;
+        this->getSuccessors = std::bind(&ProblemInstance<State, Cost>::getSuccessors, &problemInstance, std::placeholders::_1);
+        this->heuristic = std::bind(&ProblemInstance<State, Cost>::heuristic, &problemInstance, std::placeholders::_1, std::placeholders::_2);
+        this->getCost = std::bind(&ProblemInstance<State, Cost>::getCost, &problemInstance, std::placeholders::_1, std::placeholders::_2);
+        this->hash = std::bind(&ProblemInstance<State, Cost>::hash, &problemInstance, std::placeholders::_1);
+    }
+
     // Function type definitions
     using GetSuccessors = std::function<std::vector<State>(const State&)>;
     using Heuristic = std::function<Cost(const State&, const State&)>;
@@ -22,21 +37,6 @@ public:
     Heuristic heuristic;
     GetCost getCost;
     HashFn hash;
-
-    Search(): start(), goal(), getSuccessors(nullptr), heuristic(nullptr), getCost(nullptr), hash(nullptr) {}
-
-    virtual void initialize( // Initialize the search with the given parameters after construction
-        const State& start,
-        const State& goal,
-        GetSuccessors getSuccessors,
-        Heuristic heuristic,
-        GetCost getCost,
-        HashFn hashFunction = nullptr
-    ) = 0;
-
-
-    // Virtual destructor for proper inheritance
-    virtual ~Search() = default;
 
     virtual std::vector<State> findPath() = 0;
 

@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -std=c++23 -Wall -Wextra -g -I ./problems -I ./algorithms -I .
+CXXFLAGS = -std=c++23 -Wall -Wextra -g -I ./problems -I ./algorithms -I . -Wno-unused-parameter
 
 # Output binary
 TARGET = main
@@ -14,7 +14,7 @@ HEADERS = search.hpp astar.hpp sliding_puzzle.hpp path_finding.hpp
 OBJS = $(SRCS:.cpp=.o)
 
 # Main rule
-$(TARGET): $(OBJS)
+$(TARGET): clean $(OBJS)
 	$(CXX) $(OBJS) -o $(TARGET)
 
 # Rule for object files

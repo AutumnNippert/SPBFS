@@ -17,22 +17,14 @@ class AStar : public Search<State, Cost> {
     using HashFn = typename Search<State, Cost>::HashFn;
 
 public:
-    void initialize(
-        const State& i_start,
-        const State& i_goal,
-        GetSuccessors i_getSuccessors,
-        Heuristic i_heuristic,
-        GetCost i_getCost,
-        HashFn i_hash = nullptr
-    ) override {
-        this->goal = i_goal;
-        this->start = i_start;
-        this->getSuccessors = i_getSuccessors;
-        this->heuristic = i_heuristic;
-        this->getCost = i_getCost;
-        this->hash = i_hash;
+    AStar(ProblemInstance<State, Cost>& problemInstance) 
+        : Search<State, Cost>(problemInstance) {
         open = priority_queue<Node, vector<Node>, greater<>>();
         closed = boost::unordered_flat_map<State, Node, HashFn>(0, this->hash);
+        cout << "Constructing an AStar" << endl;
+        cout << "&" << &problemInstance<< endl;
+        cout << "Start State: " << this->start.toString() << endl;
+        cout << "Goal State: " << this->goal.toString() << endl;
     }
 
     vector<State> findPath() override {
