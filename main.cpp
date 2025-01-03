@@ -58,8 +58,10 @@ int main(int argc, char* argv[]) {
     } else if (problem == "path") {
         using namespace Pathfinding;
         auto instance = PathfindingInstance<State>::parseInput(std::cin);
+        cout << "Instance on Main:" << endl;
+        cout << instance.initial_state << endl;
         AStar<State> searcher(instance);
-        auto path = searcher.findPath();
+        cout << instance.initial_state << endl;
         // print_path(path);
     }
     return 0;

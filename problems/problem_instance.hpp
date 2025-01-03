@@ -11,12 +11,7 @@ public:
     ProblemInstance() : initial_state() {
         std::cout << "Constructing a ProblemInstance" << std::endl;
         std::cout << "&" << this << std::endl;
-    }
-
-    ProblemInstance(const State& initial_state) : initial_state(initial_state) {
-        std::cout << "Constructing a ProblemInstance" << std::endl;
-        std::cout << "&" << this << std::endl;
-        std::cout << "Initial state: " << initial_state << std::endl;
+        std::cout << initial_state << std::endl;
     }
 
     ~ProblemInstance() = default;

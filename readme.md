@@ -12,7 +12,6 @@ size_t expandedNodes = 0; // Number of nodes expanded during the search
 size_t generatedNodes = 0; // Number of nodes generated during the search
 size_t duplicatedNodes = 0; // Number of nodes duplicated during the search
 
-State start, goal;
 const ProblemInstance<State, Cost>& problemInstance;
 ```
 
@@ -31,4 +30,9 @@ inline std::ostream& operator << (std::ostream& os, const State& s){
     os << s.toString();
     return os;
 }
+```
+
+# Running it
+```
+$ ./main -a <algorithm> -p <problem> < <data-file>
 ```

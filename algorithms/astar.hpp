@@ -17,8 +17,7 @@ class AStar : public Search<State, Cost> {
     using HashFn = typename Search<State, Cost>::HashFn;
 
 public:
-    AStar(ProblemInstance<State, Cost>& problemInstance) 
-        : Search<State, Cost>(problemInstance) {
+    AStar(const ProblemInstance<State, Cost>& problemInstance) : Search<State, Cost>(problemInstance){
         open = priority_queue<Node, vector<Node>, greater<>>();
         closed = boost::unordered_flat_map<State, Node, HashFn>(0,     
         [this](const State& state) {
@@ -26,14 +25,13 @@ public:
         });
         cout << "Constructing an AStar" << endl;
         cout << "&" << &problemInstance<< endl;
-        cout << "Start State: " << this->start.toString() << endl;
-        cout << "Goal State: " << this->goal.toString() << endl;
+        cout << "Start State: " << this->problemInstance.initial_state.toString() << endl;
     }
 
     vector<State> findPath() override {
 
-        Node startNode(this->start);
-        startNode.h = this->problemInstance.heuristic(this->start);
+        Node startNode(this->problemInstance.initial_state);
+        startNode.h = this->problemInstance.heuristic(this->problemInstance.initial_state);
         startNode.f = startNode.h;
         open.push(startNode);
 
@@ -41,7 +39,7 @@ public:
         this->fLayer = startNode.f;
         this->minH = startNode.h;
 
-        cout << "Initial state: " << this->start.toString() << endl;
+        cout << "Initial state: " << this->problemInstance.initial_state.toString() << endl;
 
         while (!open.empty()) {
             Node current = open.top();

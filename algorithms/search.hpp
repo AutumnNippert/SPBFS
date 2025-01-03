@@ -9,7 +9,11 @@ template<typename State, typename Cost = float>
 class Search {
 public:
 
-    Search(const ProblemInstance<State, Cost>& problemInstance): problemInstance(problemInstance) {
+    Search() {
+        std::cout << "Constructing an empty Search" << std::endl;
+    }
+
+    Search(const ProblemInstance<State, Cost>& problemInstance) : problemInstance(problemInstance) {
         std::cout << "Constructing a Search" << std::endl;
         std::cout << "&" << &problemInstance << std::endl;
         std::cout << problemInstance.initial_state << std::endl;
@@ -25,7 +29,6 @@ public:
     size_t generatedNodes = 0; // Number of nodes generated during the search
     size_t duplicatedNodes = 0; // Number of nodes duplicated during the search
 
-    State start, goal;
     const ProblemInstance<State, Cost>& problemInstance;
 
     virtual std::vector<State> findPath() = 0;

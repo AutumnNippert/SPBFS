@@ -55,6 +55,8 @@ namespace Pathfinding {
     template<typename State, typename Cost = float>
     class PathfindingInstance: public ProblemInstance<State, Cost> {
     public:
+        State initial_state; // Initial state of the problem
+        
         PathfindingInstance(size_t rows, size_t cols, boost::unordered_set<Position, PositionHash> walls, State initial_state) {
             this->dimr = rows;
             this->dimc = cols;
@@ -147,6 +149,5 @@ namespace Pathfinding {
         size_t dimr = 0; // Number of rows in the grid
         size_t dimc = 0; // Number of columns in the grid
         boost::unordered_set<Position,PositionHash> walls; // Set of wall positions
-        State initial_state; // Initial state of the problem
     };
 }
