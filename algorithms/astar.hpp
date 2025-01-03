@@ -53,7 +53,8 @@ public:
                 cout << "Goal found: " << endl;
                 cout << "Path Length: " << current.g << endl;
                 this->printStats();
-                return reconstructPath(startNode, current);
+                return {};
+                // return reconstructPath(startNode, current); // this currently dees not work but is not required for the current code
             }
 
             expand(current);
