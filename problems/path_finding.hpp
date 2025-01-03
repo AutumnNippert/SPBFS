@@ -62,9 +62,6 @@ namespace Pathfinding {
             this->dimc = cols;
             this->walls = walls;
             this->initial_state = initial_state;
-            cout << "State gotten on construction:" << endl;
-            cout << "&" << this << endl;
-            cout << initial_state << endl;
         }
 
         /**
@@ -96,8 +93,6 @@ namespace Pathfinding {
                     }
                 }
             }
-            cout << "State on Parse:" << endl;
-            cout << state << endl;
             return PathfindingInstance(dimr, dimc, walls, state);
         }
 
@@ -119,7 +114,7 @@ namespace Pathfinding {
         // Basic heuristic that returns the number of dirt cells left
         float heuristic(const State& state) const override {
             size_t dirtCount = state.goals.size();
-            cout << "Dirt count: " << dirtCount << endl;
+            // cout << "Dirt count: " << dirtCount << endl;
             return dirtCount;
         }
 

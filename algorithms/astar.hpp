@@ -17,21 +17,15 @@ class AStar : public Search<State, Cost> {
     using HashFn = typename Search<State, Cost>::HashFn;
 
 public:
-    AStar(const ProblemInstance<State, Cost>& problemInstance) : Search<State, Cost>(problemInstance){
+    AStar(State initial_state, GetSuccessors getSuccessors, Heuristic heuristic, GetCost getCost, HashFn hash) : Search<State, Cost>(initial_state, getSuccessors, heuristic, getCost, hash) {
         open = priority_queue<Node, vector<Node>, greater<>>();
-        closed = boost::unordered_flat_map<State, Node, HashFn>(0,     
-        [this](const State& state) {
-            return this->problemInstance.hash(state);
-        });
-        cout << "Constructing an AStar" << endl;
-        cout << "&" << &problemInstance<< endl;
-        cout << "Start State: " << this->problemInstance.initial_state.toString() << endl;
+        closed = boost::unordered_flat_map<State, Node, HashFn>(0, hash);
     }
 
     vector<State> findPath() override {
 
-        Node startNode(this->problemInstance.initial_state);
-        startNode.h = this->problemInstance.heuristic(this->problemInstance.initial_state);
+        Node startNode(this->initial_state);
+        startNode.h = this->heuristic(this->initial_state);
         startNode.f = startNode.h;
         open.push(startNode);
 
@@ -39,7 +33,7 @@ public:
         this->fLayer = startNode.f;
         this->minH = startNode.h;
 
-        cout << "Initial state: " << this->problemInstance.initial_state.toString() << endl;
+        cout << "Initial state: " << this->initial_state.toString() << endl;
 
         while (!open.empty()) {
             Node current = open.top();
@@ -59,10 +53,9 @@ public:
                 cout << "Goal found: " << endl;
                 cout << "Path Length: " << current.g << endl;
                 this->printStats();
-                return reconstructPath(current, closed);
+                return reconstructPath(startNode, current);
             }
 
-            closed.emplace(current.state, current);
             expand(current);
         }
 
@@ -76,7 +69,7 @@ private:
     struct Node {
         State state;
         Cost f{}, g{}, h{};
-        State parent;
+        Node *parent;
 
         Node() = default;
         Node(State s) : state(s) {}
@@ -97,21 +90,23 @@ private:
 
     void expand(Node n) {
         this->expandedNodes++;
-        for (const auto& successorPos : this->problemInstance.getSuccessors(n.state)) {
+        for (const auto& successorPos : this->getSuccessors(n.state)) {
 
-            Cost tentativeG = n.g + this->problemInstance.getCost(n.state, successorPos);
+            Cost tentativeG = n.g + this->getCost(n.state, successorPos);
 
             Node successor(successorPos);
             successor.g = tentativeG;
-            successor.h = this->problemInstance.heuristic(successorPos);
+            successor.h = this->heuristic(successorPos);
             successor.f = n.g + successor.h;
-            successor.parent = n.state;
+            successor.parent = const_cast<Node*>(&n); // const_cast is used to remove the const qualifier so we can modify the parent pointer
 
             // Check if successor is already in closed list
-            auto it = closed.find(successorPos);
-            if (it != closed.end()) { 
+            auto duplicate = closed.find(successorPos);
+            if (duplicate != closed.end()) { 
                 this->duplicatedNodes++;
-                if (it->second.f >= successor.f) it->second = successor; // update it because it's worse than the current successor
+                if (duplicate->second.f >= successor.f){
+                    duplicate->second = successor; // update it because it's worse than the current successor
+                }
                 else continue;
             } else closed.emplace(successorPos, successor);
 
@@ -123,17 +118,15 @@ private:
     }
 
     static vector<State> reconstructPath(
-        const Node& goal,
-        const boost::unordered_flat_map<State, Node, HashFn>& closed
+        const Node& start_node,
+        const Node& goal_node
     ) {
         vector<State> path;
-        State current = goal.state;
-        
-        while (closed.find(current) != closed.end()) {
-            path.push_back(current);
-            current = closed.at(current).parent;
+        const Node* current = &goal_node;
+        while (current != nullptr) {
+            path.push_back(current->state);
+            current = current->parent;
         }
-
         reverse(path.begin(), path.end());
         return path;
     }
