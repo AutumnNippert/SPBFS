@@ -1,8 +1,10 @@
 #pragma once
 #include "search.hpp"
-#include <queue>
-// #include <unordered_map>
+
 #include <boost/unordered/unordered_flat_map.hpp>
+using boost::unordered_flat_map;
+
+#include <queue>
 #include <algorithm>
 #include <vector>
 #include <iostream>
@@ -18,54 +20,29 @@ class AStar : public Search<State, Cost> {
 
 public:
     AStar(const ProblemInstance<State, Cost>* problemInstance) : Search<State, Cost>(problemInstance){
-        open = priority_queue<Node, vector<Node>, greater<>>();
-        closed = boost::unordered_flat_map<State, Node, HashFn>(0,     
+        open = priority_queue<Node*, vector<Node*>, greater<>>();
+        closed = unordered_flat_map<State, Node*, HashFn>(0,     
         [this](const State& state) {
             return this->hash(state);
         });
     }
 
     vector<State> findPath() override {
+        Node* startNode = new Node(this->problemInstance->initial_state);
+        startNode->h = this->heuristic(this->problemInstance->initial_state);
+        startNode->f = startNode->h;
 
-        Node startNode(this->problemInstance->initial_state);
-        startNode.h = this->heuristic(this->problemInstance->initial_state);
-        startNode.f = startNode.h;
+        closed.emplace(startNode->state, startNode);
         open.push(startNode);
 
-        cout << "Initial heuristic: " << startNode.h << endl;
-        this->fLayer = startNode.f;
-        this->minH = startNode.h;
-
-        cout << "Initial state: " << this->problemInstance->initial_state.toString() << endl;
-
         while (!open.empty()) {
-            Node current = open.top();
+            Node* current = open.top();
             open.pop();
-
-            if (current.f > fLayer) {
-                // std::cout << "New f layer reached: " << current.f << std::endl;
-                fLayer = current.f;
-            }
-
-            if (current.h < minH) {
-                // cout << "New minimum heuristic found: " << current.h << endl;
-                minH = current.h;
-            }
-
-            if (current.h == 0) {
-                cout << "Goal found: " << endl;
-                cout << "Path Length: " << current.g << endl;
-                this->printStats();
-                return reconstructPath(current, closed);
-            }
-
-            closed.emplace(current.state, current);
+            if (current->h == 0)
+                return finish(current);
             expand(current);
         }
-
-        cout << "No path found" << endl;
-        this->printStats();
-        return {};
+        return finish(nullptr);
     }
 
 private:
@@ -73,65 +50,76 @@ private:
     struct Node {
         State state;
         Cost f{}, g{}, h{};
-        State parent;
+        Node* parent;
 
         Node() = default;
-        Node(State s) : state(s) {}
+        Node(State s) : state(s), parent(nullptr) {}
 
         bool operator > (const Node& other) const { 
-            if (f == other.f) {
+            if (f == other.f) 
                 return g > other.g;
-            }
             return f > other.f;
+        }
+        bool operator < (const Node& other) const { 
+            if (f == other.f) 
+                return g < other.g;
+            return f < other.f;
         }
     };
 
-    size_t fLayer = 0;
-    size_t minH = 0;
+    priority_queue<Node*, vector<Node*>, greater<>> open;
+    unordered_flat_map<State, Node*, HashFn> closed;
 
-    priority_queue<Node, vector<Node>, greater<>> open;
-    boost::unordered_flat_map<State, Node, HashFn> closed;
-
-    void expand(Node n) {
+    void expand(Node* n) {
         this->expandedNodes++;
-        for (const auto& successorPos : this->getSuccessors(n.state)) {
-
-            Cost tentativeG = n.g + this->getCost(n.state, successorPos);
-
-            Node successor(successorPos);
-            successor.g = tentativeG;
-            successor.h = this->heuristic(successorPos);
-            successor.f = n.g + successor.h;
-            successor.parent = n.state;
+        for (const auto& successorState : this->getSuccessors(n->state)) {
+            if (successorState == n->state) continue; // skip the parent state
+            this->generatedNodes++;
+            // Generate the successor node and calculate its f, g, and h values
+            Node* successor = new Node(successorState);
+            successor->g = n->g + this->getCost(n->state, successorState);
+            successor->h = this->heuristic(successorState);
+            successor->f = n->g + successor->h;
+            successor->parent = n;
 
             // Check if successor is already in closed list
-            auto it = closed.find(successorPos);
-            if (it != closed.end()) { 
+            auto duplicate = closed.find(successorState);
+            if (duplicate != closed.end()) { 
                 this->duplicatedNodes++;
-                if (it->second.f >= successor.f) it->second = successor; // update it because it's worse than the current successor
-                else continue;
-            } else closed.emplace(successorPos, successor);
-
-            // Add successor to open list
+                if (duplicate->second->f >= successor->f) {
+                    // delete duplicate->second; // delete the worse duplicate
+                    // TODO: Things that point to this node should be updated to point to the new node, but maybe not?
+                    duplicate->second = successor; // update duplicate because it's worse than the current successor
+                }
+                continue; // skip this successor because it's already in closed list and it was already updated
+            } else 
+                closed.emplace(successorState, successor);
             open.push(successor);
-            this->generatedNodes++;
         }
-        // this->printStats();
     }
 
     static vector<State> reconstructPath(
-        const Node& goal,
-        const boost::unordered_flat_map<State, Node, HashFn>& closed
+        Node* goal
     ) {
         vector<State> path;
-        State current = goal.state;
-        
-        while (closed.find(current) != closed.end()) {
-            path.push_back(current);
-            current = closed.at(current).parent;
+        Node* current = goal;
+        while (current != nullptr) {
+            path.push_back(current->state);
+            current = current->parent;
         }
-
         reverse(path.begin(), path.end());
         return path;
+    }
+
+    vector<State> finish(Node* n) {
+        if(n == nullptr) {
+            cout << "No path found" << endl;
+            this->printStats();
+            return {};
+        }
+        cout << "Goal found: " << endl;
+        cout << "Path Length: " << n->g << endl;
+        this->printStats();
+        return reconstructPath(n);
     }
 }; 

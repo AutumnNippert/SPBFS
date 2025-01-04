@@ -1,4 +1,5 @@
 CXX = g++
+LIBRARIES = -lboost_graph
 CXXFLAGS = -std=c++23 -Wall -Wextra -g -I ./problems -I ./algorithms -I ./utils -I . -Wno-unused-parameter
 
 # Output binary
@@ -19,7 +20,7 @@ $(TARGET): clean $(OBJS)
 
 # Rule for object files
 %.o: %.cpp $(HEADERS)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(LIBRARIES) -c $< -o $@
 
 # Clean rule
 clean:

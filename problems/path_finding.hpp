@@ -8,12 +8,16 @@
 #include "search.hpp"
 #include "problem_instance.hpp"
 #include "position.hpp"
+
 #include <cmath>
 
 #include <boost/unordered/unordered_flat_map.hpp>
 #include <boost/unordered/unordered_set.hpp>
 
 using namespace std;
+
+using boost::unordered_set;
+using boost::unordered_flat_map;
 
 namespace Pathfinding {
     static constexpr char GOAL = '*'; // Represents an empty cell
@@ -109,13 +113,22 @@ namespace Pathfinding {
 
         // The functions required by ProblemInstance
 
-        // Basic heuristic that returns the number of dirt cells left
-        float heuristic(const State& state) const override {
-            size_t dirtCount = state.goals.size();
-            return dirtCount;
+        inline float heuristic(const State& state) const override {
+            if (state.goals.empty()) {
+                return 0.0f; // No goals left, heuristic cost is zero
+            }
+            // get the closest goal and return the distance
+            float minDist = std::numeric_limits<float>::max();
+            for (const auto& goal : state.goals) {
+                float dist = std::abs((int)goal.row - (int)state.actor.row) + std::abs((int)goal.col - (int)state.actor.col); // i don't want to cast to an int but size_t subtraction sucks
+                if (dist < minDist) {
+                    minDist = dist;
+                }
+            }
+            return minDist;
         }
 
-        vector<State> getSuccessors(const State& state) const override {
+        inline vector<State> getSuccessors(const State& state) const override {
             vector<State> successors;
             for (const auto& move : this->getValidMoves(state)) {
                 State newState = state;
@@ -125,15 +138,21 @@ namespace Pathfinding {
             return successors;
         }
 
-        float getCost(const State&, const State&) const override {
+        inline float getCost(const State&, const State&) const override {
             return 1.0f; // Each move costs 1
         }
 
-        size_t hash(const State& state) const override {
-            size_t h = state.actor.row * dimc + state.actor.col;
+        inline size_t hash(const State& state) const override {
+            size_t h = state.actor.row;
+            h = h << 1;
+            h ^= state.actor.col;
             for (const auto& goal : state.goals) {
-                h += goal.row * dimc + goal.col;
+                h = h << 1;
+                h ^= goal.row;
+                h = h << 1;
+                h ^= goal.col;
             }
+            // hash it
             return h;
         }
 
