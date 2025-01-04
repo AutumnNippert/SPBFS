@@ -13,11 +13,7 @@ public:
         std::cout << "Constructing an empty Search" << std::endl;
     }
 
-    Search(const ProblemInstance<State, Cost>& problemInstance) : problemInstance(problemInstance) {
-        std::cout << "Constructing a Search" << std::endl;
-        std::cout << "&" << &problemInstance << std::endl;
-        std::cout << problemInstance.initial_state << std::endl;
-    }
+    Search(const ProblemInstance<State, Cost>* problemInstance) : problemInstance(problemInstance) {}
 
     // Function type definitions
     using GetSuccessors = std::function<std::vector<State>(const State&)>;
@@ -29,7 +25,12 @@ public:
     size_t generatedNodes = 0; // Number of nodes generated during the search
     size_t duplicatedNodes = 0; // Number of nodes duplicated during the search
 
-    const ProblemInstance<State, Cost>& problemInstance;
+    const ProblemInstance<State, Cost> *problemInstance;
+    
+    inline std::vector<State> getSuccessors(const State& state) const { return problemInstance->getSuccessors(state); }
+    inline Cost heuristic(const State& state) const { return problemInstance->heuristic(state); }
+    inline Cost getCost(const State& state, const State& successor) const { return problemInstance->getCost(state, successor); }
+    inline size_t hash(const State& state) const { return problemInstance->hash(state); }
 
     virtual std::vector<State> findPath() = 0;
 

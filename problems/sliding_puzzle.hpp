@@ -63,8 +63,7 @@ namespace SlidingPuzzle {
     template<typename State, typename Cost = float>
     class SlidingTileInstance: public ProblemInstance<State, Cost> {
     public:
-        SlidingTileInstance(const State& initial, const State& goal) {
-            this->initial_state = initial;
+        SlidingTileInstance(const State& initial, const State& goal) : ProblemInstance<State, Cost>(initial), goal(goal) {
             this->goal = goal;
             std::cout << "Constructing a SlidingTileInstance" << std::endl;
         }

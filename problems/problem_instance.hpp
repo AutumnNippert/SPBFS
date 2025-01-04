@@ -6,13 +6,9 @@
 template<typename State, typename Cost = float>
 class ProblemInstance {
 public:
-    State initial_state;
+    const State initial_state = State();
 
-    ProblemInstance() : initial_state() {
-        std::cout << "Constructing a ProblemInstance" << std::endl;
-        std::cout << "&" << this << std::endl;
-        std::cout << initial_state << std::endl;
-    }
+    ProblemInstance(const State& initial_state) : initial_state(initial_state) {}
 
     ~ProblemInstance() = default;
 

@@ -17,29 +17,26 @@ class AStar : public Search<State, Cost> {
     using HashFn = typename Search<State, Cost>::HashFn;
 
 public:
-    AStar(const ProblemInstance<State, Cost>& problemInstance) : Search<State, Cost>(problemInstance){
+    AStar(const ProblemInstance<State, Cost>* problemInstance) : Search<State, Cost>(problemInstance){
         open = priority_queue<Node, vector<Node>, greater<>>();
         closed = boost::unordered_flat_map<State, Node, HashFn>(0,     
         [this](const State& state) {
-            return this->problemInstance.hash(state);
+            return this->hash(state);
         });
-        cout << "Constructing an AStar" << endl;
-        cout << "&" << &problemInstance<< endl;
-        cout << "Start State: " << this->problemInstance.initial_state.toString() << endl;
     }
 
     vector<State> findPath() override {
 
-        Node startNode(this->problemInstance.initial_state);
-        startNode.h = this->problemInstance.heuristic(this->problemInstance.initial_state);
+        Node startNode(this->problemInstance->initial_state);
+        startNode.h = this->heuristic(this->problemInstance->initial_state);
         startNode.f = startNode.h;
         open.push(startNode);
 
-        cout << "Initial heuristic: " << endl << startNode.h << endl;
+        cout << "Initial heuristic: " << startNode.h << endl;
         this->fLayer = startNode.f;
         this->minH = startNode.h;
 
-        cout << "Initial state: " << this->problemInstance.initial_state.toString() << endl;
+        cout << "Initial state: " << this->problemInstance->initial_state.toString() << endl;
 
         while (!open.empty()) {
             Node current = open.top();
@@ -97,13 +94,13 @@ private:
 
     void expand(Node n) {
         this->expandedNodes++;
-        for (const auto& successorPos : this->problemInstance.getSuccessors(n.state)) {
+        for (const auto& successorPos : this->getSuccessors(n.state)) {
 
-            Cost tentativeG = n.g + this->problemInstance.getCost(n.state, successorPos);
+            Cost tentativeG = n.g + this->getCost(n.state, successorPos);
 
             Node successor(successorPos);
             successor.g = tentativeG;
-            successor.h = this->problemInstance.heuristic(successorPos);
+            successor.h = this->heuristic(successorPos);
             successor.f = n.g + successor.h;
             successor.parent = n.state;
 

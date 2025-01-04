@@ -54,17 +54,11 @@ namespace Pathfinding {
 
     template<typename State, typename Cost = float>
     class PathfindingInstance: public ProblemInstance<State, Cost> {
-    public:
-        State initial_state; // Initial state of the problem
-        
-        PathfindingInstance(size_t rows, size_t cols, boost::unordered_set<Position, PositionHash> walls, State initial_state) {
+    public:        
+        PathfindingInstance(size_t rows, size_t cols, boost::unordered_set<Position, PositionHash> walls, State& initial_state) : ProblemInstance<State, Cost>(initial_state) {
             this->dimr = rows;
             this->dimc = cols;
             this->walls = walls;
-            this->initial_state = initial_state;
-            cout << "State gotten on construction:" << endl;
-            cout << "&" << this << endl;
-            cout << initial_state << endl;
         }
 
         /**
@@ -96,9 +90,8 @@ namespace Pathfinding {
                     }
                 }
             }
-            cout << "State on Parse:" << endl;
-            cout << state << endl;
-            return PathfindingInstance(dimr, dimc, walls, state);
+            auto instance = PathfindingInstance(dimr, dimc, walls, state);
+            return instance;
         }
 
         // Gets valid moves up, down, left, and right if no obstacles and within bounds
@@ -119,7 +112,6 @@ namespace Pathfinding {
         // Basic heuristic that returns the number of dirt cells left
         float heuristic(const State& state) const override {
             size_t dirtCount = state.goals.size();
-            cout << "Dirt count: " << dirtCount << endl;
             return dirtCount;
         }
 
