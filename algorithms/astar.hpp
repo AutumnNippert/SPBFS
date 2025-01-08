@@ -85,8 +85,8 @@ private:
             // Check if successor is already in closed list
             auto duplicate = closed.find(successorState);
             if (duplicate != closed.end()) { 
-                this->duplicatedNodes++;
-                if (duplicate->second->f >= successor->f) {
+                if (duplicate->second->f > successor->f){
+                    this->duplicatedNodes++;
                     // delete duplicate->second; // delete the worse duplicate
                     // TODO: Things that point to this node should be updated to point to the new node, but maybe not?
                     duplicate->second = successor; // update duplicate because it's worse than the current successor
