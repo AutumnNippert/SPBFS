@@ -1,0 +1,1 @@
+valgrind ./main -a cafe -p path -t 2 < sample-data/path_data/path

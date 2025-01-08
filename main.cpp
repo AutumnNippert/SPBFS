@@ -1,6 +1,7 @@
 #include "sliding_puzzle.hpp"
 #include "path_finding.hpp"
 #include "astar.hpp"
+#include "cafe.hpp"
 
 #include <iostream>
 
@@ -17,7 +18,7 @@ int main(int argc, char* argv[]) {
     int c;
     std::string algorithmChoice = "astar"; // Default algorithm
     std::string problem = "tiles"; // Default problem
-    int threadCount = 1; // Default thread count
+    size_t threadCount = 1; // Default thread count
 
     static struct option long_options[] =
     {
@@ -49,18 +50,34 @@ int main(int argc, char* argv[]) {
     std::cout << "Problem: " << problem << std::endl;
     std::cout << "Thread count: " << threadCount << std::endl;
 
-    if (problem == "tiles") {
-        using namespace SlidingPuzzle;
-        auto instance = SlidingTileInstance<State>::parseInput(std::cin);
-        AStar<State> searcher(&instance);
-        auto path = searcher.findPath();
-        // print_path(path);
-    } else if (problem == "path") {
-        using namespace Pathfinding;
-        auto instance = PathfindingInstance<State>::parseInput(std::cin);
-        AStar<State> searcher(&instance);
-        auto path = searcher.findPath();
-        // print_path(path);
+    if (algorithmChoice == "astar") {
+        if (problem == "tiles") {
+            using namespace SlidingPuzzle;
+            auto instance = SlidingTileInstance<State>::parseInput(std::cin);
+            AStar<State> searcher(&instance);
+            auto path = searcher.findPath();
+            // print_path(path);
+        } else if (problem == "path") {
+            using namespace Pathfinding;
+            auto instance = PathfindingInstance<State>::parseInput(std::cin);
+            AStar<State> searcher(&instance);
+            auto path = searcher.findPath();
+            // print_path(path);
+        }
+    } else if (algorithmChoice == "cafe") {
+        if (problem == "tiles") {
+            using namespace SlidingPuzzle;
+            auto instance = SlidingTileInstance<State>::parseInput(std::cin);
+            CAFE<State> searcher(&instance, threadCount);
+            auto path = searcher.findPath();
+            // print_path(path);
+        } else if (problem == "path") {
+            using namespace Pathfinding;
+            auto instance = PathfindingInstance<State>::parseInput(std::cin);
+            CAFE<State> searcher(&instance, threadCount);
+            auto path = searcher.findPath();
+            // print_path(path);
+        }
     }
     return 0;
 } 

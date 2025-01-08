@@ -20,7 +20,7 @@ class AStar : public Search<State, Cost> {
 
 public:
     AStar(const ProblemInstance<State, Cost>* problemInstance) : Search<State, Cost>(problemInstance){
-        open = priority_queue<Node*, vector<Node*>, greater<>>();
+        open = priority_queue<Node*, vector<Node*>, less<>>();
         closed = unordered_flat_map<State, Node*, HashFn>(0,     
         [this](const State& state) {
             return this->hash(state);
@@ -67,7 +67,7 @@ private:
         }
     };
 
-    priority_queue<Node*, vector<Node*>, greater<>> open;
+    priority_queue<Node*, vector<Node*>, less<>> open;
     unordered_flat_map<State, Node*, HashFn> closed;
 
     void expand(Node* n) {

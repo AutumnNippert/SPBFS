@@ -65,7 +65,6 @@ namespace SlidingPuzzle {
     public:
         SlidingTileInstance(const State& initial, const State& goal) : ProblemInstance<State, Cost>(initial), goal(goal) {
             this->goal = goal;
-            std::cout << "Constructing a SlidingTileInstance" << std::endl;
         }
 
         static SlidingTileInstance parseInput(std::istream& input) {
@@ -124,7 +123,7 @@ namespace SlidingPuzzle {
 
         float heuristic(const State& state) const override {
             int goalIndexLookup[SIZE * SIZE];
-            for (int i = 0; i < SIZE * SIZE; i++) {
+            for (int i = 0; i <= SIZE * SIZE; i++) {
                 goalIndexLookup[goal.board[i]] = i;
             }
 

@@ -1,6 +1,9 @@
 # Search
 This repo is used for testing the effectivity of search algorithms on different problems.
 
+# Requirements
+This repo requires boost [1.86.0](https://www.boost.org/users/history/version_1_86_0.html)
+
 # Search Algorithms
 Search Algorithms implement the `Search` class in `./algorithms/search.hpp`. They are templated with `<State, Cost>`. They require the following:
 ```c++
@@ -34,5 +37,5 @@ inline std::ostream& operator << (std::ostream& os, const State& s){
 
 # Running it
 ```
-$ ./main -a <algorithm> -p <problem> < <data-file>
+$ ./main -a <algorithm> -p <problem> -t <threads=1> < <data-file>
 ```

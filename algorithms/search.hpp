@@ -4,6 +4,7 @@
 #include <vector>
 #include <functional>
 #include <iostream>
+#include <chrono>
 
 template<typename State, typename Cost = float>
 class Search {
@@ -20,6 +21,9 @@ public:
     using Heuristic = std::function<Cost(const State&, const State&)>;
     using GetCost = std::function<Cost(const State&, const State&)>;
     using HashFn = std::function<size_t(const State&)>;
+
+    // clock
+    std::chrono::high_resolution_clock::time_point clockStart;
 
     size_t expandedNodes = 0; // Number of nodes expanded during the search
     size_t generatedNodes = 0; // Number of nodes generated during the search
@@ -41,4 +45,17 @@ public:
         std::cout << "Duplicated nodes: " << duplicatedNodes << std::endl;
         // std::cout << "Max f value: " << maxF << std::endl;
     }
+
+    void start() {
+        this->clockStart = std::chrono::high_resolution_clock::now();
+    }
+
+    void end() {
+        auto clockEnd = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = clockEnd - this->clockStart;
+        std::cout << "Elapsed time: " << elapsed.count() << "s" << std::endl;
+        this->printStats();
+    }
+
+
 }; 
