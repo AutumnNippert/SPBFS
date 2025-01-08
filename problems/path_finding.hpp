@@ -143,17 +143,11 @@ namespace Pathfinding {
         }
 
         inline size_t hash(const State& state) const override {
-            size_t h = state.actor.row;
-            h = h << 1;
-            h ^= state.actor.col;
-            for (const auto& goal : state.goals) {
-                h = h << 1;
-                h ^= goal.row;
-                h = h << 1;
-                h ^= goal.col;
-            }
-            // hash it
-            return h;
+            std::size_t seed = 0;
+            boost::hash_combine(seed, state.actor.row);
+            boost::hash_combine(seed, state.actor.col);
+            boost::hash_combine(seed, state.goals.size());
+            return seed;
         }
 
     private:
