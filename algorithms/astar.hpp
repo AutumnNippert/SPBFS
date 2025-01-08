@@ -65,12 +65,43 @@ private:
                 return g < other.g;
             return f < other.f;
         }
+
+        friend bool operator == (const Node& a, const Node& b) {
+            return a.state == b.state && a.f == b.f && a.g == b.g && a.h == b.h && a.parent == b.parent;
+        }
+
+        friend ostream& operator << (ostream& os, const Node& n) {
+            os << "Node: " << n.state << " f: " << n.f << " g: " << n.g << " h: " << n.h << " parent:\n";
+            if(n.parent != nullptr) {
+                os << *n.parent;
+            }
+            return os;
+        }
     };
 
     priority_queue<Node*, vector<Node*>, less<>> open;
     unordered_flat_map<State, Node*, HashFn> closed;
 
+    static string dump_closed(const unordered_flat_map<State, Node*, HashFn>& closed) {
+        stringstream ss;
+        ss << "Closed:" << endl;
+        for(const auto& entry : closed) {
+            ss << entry.first << endl;
+        }
+        ss << endl;
+        return ss.str();
+    }
+
     void expand(Node* n) {
+        auto closed_entry = closed.find(n->state);
+        if(closed_entry == closed.end()) {
+            cout << "Node not found in closed list\n" << dump_closed(closed) << "\n" << *n << endl;
+            return;
+        }
+        assert(closed_entry != closed.end());
+        if(!(*closed_entry->second == *n)){
+            return;
+        }
         this->expandedNodes++;
         for (const auto& successorState : this->getSuccessors(n->state)) {
             if (successorState == n->state) continue; // skip the parent state
@@ -92,8 +123,8 @@ private:
                     duplicate->second = successor; // update duplicate because it's worse than the current successor
                 }
                 continue; // skip this successor because it's already in closed list and it was already updated
-            } else 
-                closed.emplace(successorState, successor);
+            }
+            closed.emplace(successorState, successor);
             open.push(successor);
         }
     }
