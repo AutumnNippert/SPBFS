@@ -91,6 +91,7 @@ private:
                     // TODO: Things that point to this node should be updated to point to the new node, but maybe not?
                     duplicate->second = successor; // update duplicate because it's worse than the current successor
                 }
+                this->generatedNodes--;  // nothing has been generated
                 continue; // skip this successor because it's already in closed list and it was already updated
             } else 
                 closed.emplace(successorState, successor);
