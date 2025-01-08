@@ -4,7 +4,7 @@
 #include <boost/unordered/unordered_flat_map.hpp>
 using boost::unordered_flat_map;
 
-#include "array_heap.hpp"
+#include "recent_window_heap.hpp"
 const size_t PRE_HEAP_SIZE = 32;
 
 #include <algorithm>
@@ -25,14 +25,14 @@ class CAFE : public Search<State, Cost> {
     using HashFn = typename Search<State, Cost>::HashFn;
 
     struct Node;
-    ArrayHeap<Node*> open;
+    RecentWindowHeap<Node*> open;
     unordered_flat_map<State, Node*, HashFn> closed;
     size_t threadCount;
     atomic<size_t> threadsCompleted{0}; // Track total completed threads
 
 public:
     CAFE(const ProblemInstance<State, Cost>* problemInstance, size_t threadCount) : Search<State, Cost>(problemInstance) {
-        open = ArrayHeap<Node*>(PRE_HEAP_SIZE);
+        open = RecentWindowHeap<Node*>(PRE_HEAP_SIZE);
         closed = unordered_flat_map<State, Node*, HashFn>(0,     
             [this](const State& state) {
                 return this->hash(state);

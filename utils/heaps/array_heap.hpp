@@ -1,3 +1,5 @@
+#include "custom_heap.hpp"
+
 /**
  * ArrayHeap is a data structure that is a combination of an array and a min heap.
  * The array is used to store the first n elements, and the min heap is used to store the rest.
@@ -5,19 +7,8 @@
  * This allows for fast access to the first n elements, and fast access to the minimum element.
  */
 
-#include <iostream>
-#include <list>
-#include <vector>
-#include <queue>
-#include <stdexcept>
-#include <optional>
-#include <cassert>
-
-using std::optional;
-using std::nullopt;
-
 template <typename T>
-class ArrayHeap {
+class ArrayHeap: public CustomHeap<T> {
 public:
     ArrayHeap(size_t max_size) : max_size(max_size), items(new T[max_size]) {
         assert (max_size > 0);
@@ -28,7 +19,7 @@ public:
         delete[] items;
     }
 
-    void push(T item) {
+    void push(T item) override {
         if (array_size >= max_size) { // If the list is full
             T last_item = items[array_size - 1];
             min_heap.push(last_item);
@@ -39,7 +30,7 @@ public:
         items[0] = item;
     }
 
-    optional<T> pop() {
+    optional<T> pop() override {
         if (array_size == 0) {
             return nullopt;
         }
@@ -57,7 +48,7 @@ public:
         return item; // Return the item that was popped
     }
 
-    optional<T> peek() const {
+    optional<T> peek() const override {
         if (array_size == 0) {
             return nullopt;
         } else {
@@ -65,7 +56,7 @@ public:
         }
     }
 
-    optional<T> get(size_t index) const {
+    optional<T> get(size_t index) const override {
         if (index >= array_size) {
             return nullopt;
         } else {
@@ -75,11 +66,11 @@ public:
 
 
 
-    size_t size() const {
+    size_t size() const override {
         return array_size + min_heap.size();
     }
 
-    bool empty() const {
+    bool empty() const override {
         return array_size == 0;
     }
 
