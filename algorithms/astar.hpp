@@ -96,7 +96,6 @@ private:
         auto closed_entry = closed.find(n->state);
         if(closed_entry == closed.end()) {
             cout << "Node not found in closed list\n" << dump_closed(closed) << "\n" << *n << endl;
-            return;
         }
         assert(closed_entry != closed.end());
         if(!(*closed_entry->second == *n)){

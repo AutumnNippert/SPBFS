@@ -1,6 +1,6 @@
 CXX = g++
 LIBRARIES = -lboost_graph -libatomic
-CXXFLAGS = -std=c++23 -Wall -Wextra -O3 -g -I ./problems -I ./algorithms -I ./utils -I ./utils/heaps -I . -Wno-unused-parameter
+CXXFLAGS = -std=c++23 -Wall -Wextra -O1 -DDebug -g -I ./problems -I ./algorithms -I ./utils -I ./utils/heaps -I . -Wno-unused-parameter
 
 # Output binary
 TARGET = main
