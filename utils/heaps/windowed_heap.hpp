@@ -12,10 +12,10 @@ using std::optional;
 using std::nullopt;
 
 /**
- * Functions for a custom heap data structure.
+ * Interface for windowed heap data structures.
  */
 template <typename T>
-class CustomHeap {
+class WindowedHeap {
 public:
     virtual void push(T item) = 0;
     virtual optional<T> pop() = 0;

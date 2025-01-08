@@ -1,4 +1,4 @@
-#include "custom_heap.hpp"
+#include "windowed_heap.hpp"
 
 /**
  * ArrayHeap is a data structure that is a combination of an array and a min heap.
@@ -8,7 +8,7 @@
  */
 
 template <typename T>
-class ArrayHeap: public CustomHeap<T> {
+class ArrayHeap: public WindowedHeap<T> {
 public:
     ArrayHeap(size_t max_size) : max_size(max_size), items(new T[max_size]) {
         assert (max_size > 0);

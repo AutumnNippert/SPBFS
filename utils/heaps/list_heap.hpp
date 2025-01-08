@@ -1,7 +1,7 @@
-#include "custom_heap.hpp"
+#include "windowed_heap.hpp"
 
 template <typename T>
-class ListHeap: public CustomHeap<T> {
+class ListHeap: public WindowedHeap<T> {
 public:
     ListHeap(size_t max_size) : max_size(max_size) {
         assert (max_size > 0);

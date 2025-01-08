@@ -4,7 +4,7 @@
 #include <random>
 #include <algorithm>  // For sort
 #include <string>
-#include "custom_heap.hpp"
+#include "windowed_heap.hpp"
 #include "array_heap.hpp"
 #include "list_heap.hpp"
 #include "recent_window_heap.hpp"

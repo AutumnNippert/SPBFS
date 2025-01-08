@@ -1,10 +1,10 @@
-#include "custom_heap.hpp"
+#include "windowed_heap.hpp"
 
 /**
  * RecentWindowHeap is a heap paired with an array that stores copies of the most recent elements in a round robin fashion.
  */
 template <typename T>
-class RecentWindowHeap : public CustomHeap<T> {
+class RecentWindowHeap : public WindowedHeap<T> {
 public:
     RecentWindowHeap(size_t max_size) : max_size(max_size), items(new T*[max_size]) {
         assert (max_size > 0);
