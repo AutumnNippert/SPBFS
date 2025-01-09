@@ -5,6 +5,8 @@
 using boost::unordered_flat_map;
 
 #include <queue>
+#include <boost/heap/d_ary_heap.hpp>
+
 #include <algorithm>
 #include <vector>
 #include <iostream>
@@ -18,22 +20,33 @@ class AStar : public Search<State, Cost> {
     using GetCost = typename Search<State, Cost>::GetCost;
     using HashFn = typename Search<State, Cost>::HashFn;
 
+    struct Node;
+    struct NodeCompare;
+    using MinHeap = boost::heap::d_ary_heap<Node*, boost::heap::arity<2>, boost::heap::mutable_<true>, boost::heap::compare<NodeCompare>>;
+
 public:
     AStar(const ProblemInstance<State, Cost>* problemInstance) : Search<State, Cost>(problemInstance){
-        open = priority_queue<Node*, vector<Node*>, less<>>();
+        open = MinHeap();
         closed = unordered_flat_map<State, Node*, HashFn>(0,     
         [this](const State& state) {
             return this->hash(state);
         });
     }
 
+    ~AStar() {
+        for (auto& node : nodes) {
+            delete &node;
+        }
+    }
+
     vector<State> findPath() override {
-        Node* startNode = new Node(this->problemInstance->initial_state);
-        startNode->h = this->heuristic(this->problemInstance->initial_state);
-        startNode->f = startNode->h;
+        nodes.reserve(100'000'000); // reserve 100 million nodes
+        nodes.emplace_back(this->problemInstance->initial_state,
+            0, this->heuristic(this->problemInstance->initial_state), nullptr);
+        Node* startNode = &nodes.back();
 
         closed.emplace(startNode->state, startNode);
-        open.push(startNode);
+        startNode->handle = open.push(startNode);
 
         while (!open.empty()) {
             Node* current = open.top();
@@ -46,28 +59,33 @@ public:
     }
 
 private:
-
     struct Node {
-        State state;
+        MinHeap::handle_type handle;
+        const State state;
         Cost f{}, g{}, h{};
         Node* parent;
 
         Node() = default;
         Node(State s) : state(s), parent(nullptr) {}
+        Node(State s, Cost g, Cost h, Node* parent) : state(s), g(g), h(h), parent(parent) {
+            f = g + h;
+        }
 
         bool operator > (const Node& other) const { 
             if (f == other.f) 
                 return g > other.g;
             return f > other.f;
         }
-        bool operator < (const Node& other) const { 
-            if (f == other.f) 
-                return g < other.g;
-            return f < other.f;
+    };
+
+    struct NodeCompare {
+        bool operator()(const Node* a, const Node* b) const {
+            return *a > *b;
         }
     };
 
-    priority_queue<Node*, vector<Node*>, less<>> open;
+    vector<Node> nodes;
+    MinHeap open;
     unordered_flat_map<State, Node*, HashFn> closed;
 
     void expand(Node* n) {
@@ -76,25 +94,28 @@ private:
             if (successorState == n->state) continue; // skip the parent state
             this->generatedNodes++;
             // Generate the successor node and calculate its f, g, and h values
-            Node* successor = new Node(successorState);
-            successor->g = n->g + this->getCost(n->state, successorState);
-            successor->h = this->heuristic(successorState);
-            successor->f = n->g + successor->h;
-            successor->parent = n;
+            nodes.emplace_back(successorState,
+                n->g + this->getCost(n->state, successorState),
+                this->heuristic(successorState),
+                n);
+            Node* successor = &nodes.back();
 
             // Check if successor is already in closed list
             auto duplicate = closed.find(successorState);
             if (duplicate != closed.end()) { 
+                Node* duplicateNode = duplicate->second;
                 this->duplicatedNodes++;
-                if (duplicate->second->f >= successor->f) {
-                    // delete duplicate->second; // delete the worse duplicate
-                    // TODO: Things that point to this node should be updated to point to the new node, but maybe not?
-                    duplicate->second = successor; // update duplicate because it's worse than the current successor
+                if (duplicateNode->f > successor->f) { // only > because less effort to skip if they have the same f value
+                    duplicateNode->g = successor->g;
+                    duplicateNode->h = successor->h;
+                    duplicateNode->f = successor->f;
+                    duplicateNode->parent = successor->parent;
+                    open.update(duplicateNode->handle);
                 }
                 continue; // skip this successor because it's already in closed list and it was already updated
             } else 
                 closed.emplace(successorState, successor);
-            open.push(successor);
+            successor->handle = open.push(successor);
         }
     }
 
