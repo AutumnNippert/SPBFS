@@ -33,14 +33,10 @@ public:
         });
     }
 
-    ~AStar() {
-        for (auto& node : nodes) {
-            delete &node;
-        }
-    }
-
     vector<State> findPath() override {
-        nodes.reserve(100'000'000); // reserve 100 million nodes
+        nodes.reserve(10'000'000); // reserve 10 million nodes
+        // Side note, push back is amortized O(1), so we can compare the speed loss of reserve vs push_back at some point
+
         nodes.emplace_back(this->problemInstance->initial_state,
             0, this->heuristic(this->problemInstance->initial_state), nullptr);
         Node* startNode = &nodes.back();
@@ -107,7 +103,7 @@ private:
                 this->duplicatedNodes++;
                 if (duplicateNode->f > successor->f) { // only > because less effort to skip if they have the same f value
                     duplicateNode->g = successor->g;
-                    duplicateNode->h = successor->h;
+                    // h should be the same because it's the same state
                     duplicateNode->f = successor->f;
                     duplicateNode->parent = successor->parent;
                     open.update(duplicateNode->handle);
