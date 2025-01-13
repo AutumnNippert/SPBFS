@@ -150,6 +150,10 @@ namespace Pathfinding {
             return seed;
         }
 
+        inline size_t maxActionCount() const override {
+            return 4;
+        }
+
     private:
         size_t dimr = 0; // Number of rows in the grid
         size_t dimc = 0; // Number of columns in the grid

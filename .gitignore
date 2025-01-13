@@ -2,5 +2,6 @@
 data
 main
 perf*
+vgcore*
 
 *.o

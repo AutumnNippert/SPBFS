@@ -2,6 +2,7 @@
 #include "path_finding.hpp"
 #include "astar.hpp"
 #include "cafe.hpp"
+#include "kbfs.hpp"
 
 #include <iostream>
 
@@ -75,6 +76,20 @@ int main(int argc, char* argv[]) {
             using namespace Pathfinding;
             auto instance = PathfindingInstance<State>::parseInput(std::cin);
             CAFE<State> searcher(&instance, threadCount);
+            auto path = searcher.findPath();
+            // print_path(path);
+        }
+    } else if (algorithmChoice == "kbfs") {
+        if (problem == "tiles") {
+            using namespace SlidingPuzzle;
+            auto instance = SlidingTileInstance<State>::parseInput(std::cin);
+            KBFS<State> searcher(&instance, threadCount);
+            auto path = searcher.findPath();
+            // print_path(path);
+        } else if (problem == "path") {
+            using namespace Pathfinding;
+            auto instance = PathfindingInstance<State>::parseInput(std::cin);
+            KBFS<State> searcher(&instance, threadCount);
             auto path = searcher.findPath();
             // print_path(path);
         }

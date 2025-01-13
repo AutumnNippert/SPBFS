@@ -160,6 +160,10 @@ namespace SlidingPuzzle {
             return h;
         }
 
+        inline size_t maxActionCount() const override {
+            return 4;
+        }
+
     private:
         State goal;
     };

@@ -40,4 +40,11 @@ public:
      * @return The hash value of the state
      */
     virtual size_t hash(const State& state) const = 0;
+
+    /**
+     * Get the maximum number of actions that can be taken from a state
+     * Used for allocating nodes in the search algorithms that require it
+     * @return The maximum number of actions that can be taken from a state
+     */
+    virtual size_t maxActionCount() const = 0;
 }; 
