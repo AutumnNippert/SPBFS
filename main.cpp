@@ -19,18 +19,20 @@ int main(int argc, char* argv[]) {
     int c;
     std::string algorithmChoice = "astar"; // Default algorithm
     std::string problem = "tiles"; // Default problem
+    size_t extraExpansionTime = 0; // Default extra expansion time
     size_t threadCount = 1; // Default thread count
 
     static struct option long_options[] =
     {
         {"algorithm", required_argument, 0, 'a'},
         {"problem", required_argument, 0, 'p'},
+        {"extra-expansion-time", required_argument, 0, 'e'},
         {"threads", required_argument, 0, 't'},
         {0, 0, 0, 0}
     };
 
     int option_index = 0;
-    while ((c = getopt_long(argc, argv, "a:p:t:", long_options, &option_index)) != -1) {
+    while ((c = getopt_long(argc, argv, "a:p:e:t:", long_options, &option_index)) != -1) {
         switch (c) {
             case 'a':
                 algorithmChoice = optarg;
@@ -38,30 +40,34 @@ int main(int argc, char* argv[]) {
             case 'p':
                 problem = optarg;
                 break;
+            case 'e':
+                extraExpansionTime = std::stoi(optarg); // Convert string to int
+                break;
             case 't':
                 threadCount = std::stoi(optarg); // Convert string to int
                 break;
             default:
-                std::cerr << "Usage: " << argv[0] << " [-a <algorithm>] [-p <problem>] [-t <thread count>]" << std::endl;
+                std::cerr << "Usage: " << argv[0] << " [-a <algorithm>] [-p <problem>] [-e <extra-expansion-time>] [-t <threads>]" << std::endl;
                 return 1;
         }
     }
     
     std::cout << "Algorithm: " << algorithmChoice << std::endl;
     std::cout << "Problem: " << problem << std::endl;
+    std::cout << "Extra expansion time: " << extraExpansionTime << std::endl;
     std::cout << "Thread count: " << threadCount << std::endl;
 
     if (algorithmChoice == "astar") {
         if (problem == "tiles") {
             using namespace SlidingPuzzle;
             auto instance = SlidingTileInstance<State>::parseInput(std::cin);
-            AStar<State> searcher(&instance);
+            AStar<State> searcher(&instance, extraExpansionTime);
             auto path = searcher.findPath();
             // print_path(path);
         } else if (problem == "path") {
             using namespace Pathfinding;
             auto instance = PathfindingInstance<State>::parseInput(std::cin);
-            AStar<State> searcher(&instance);
+            AStar<State> searcher(&instance, extraExpansionTime);
             auto path = searcher.findPath();
             // print_path(path);
         }
@@ -69,13 +75,13 @@ int main(int argc, char* argv[]) {
         if (problem == "tiles") {
             using namespace SlidingPuzzle;
             auto instance = SlidingTileInstance<State>::parseInput(std::cin);
-            CAFE<State> searcher(&instance, threadCount);
+            CAFE<State> searcher(&instance, extraExpansionTime, threadCount);
             auto path = searcher.findPath();
             // print_path(path);
         } else if (problem == "path") {
             using namespace Pathfinding;
             auto instance = PathfindingInstance<State>::parseInput(std::cin);
-            CAFE<State> searcher(&instance, threadCount);
+            CAFE<State> searcher(&instance, extraExpansionTime, threadCount);
             auto path = searcher.findPath();
             // print_path(path);
         }
@@ -83,13 +89,13 @@ int main(int argc, char* argv[]) {
         if (problem == "tiles") {
             using namespace SlidingPuzzle;
             auto instance = SlidingTileInstance<State>::parseInput(std::cin);
-            KBFS<State> searcher(&instance, threadCount);
+            KBFS<State> searcher(&instance, extraExpansionTime, threadCount);
             auto path = searcher.findPath();
             // print_path(path);
         } else if (problem == "path") {
             using namespace Pathfinding;
             auto instance = PathfindingInstance<State>::parseInput(std::cin);
-            KBFS<State> searcher(&instance, threadCount);
+            KBFS<State> searcher(&instance, extraExpansionTime, threadCount);
             auto path = searcher.findPath();
             // print_path(path);
         }

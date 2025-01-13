@@ -32,16 +32,19 @@ class KBFS : public Search<State, Cost> {
 
 
 public:
-    KBFS(const ProblemInstance<State, Cost>* problemInstance, size_t threadCount) : Search<State, Cost>(problemInstance){
+    KBFS(const ProblemInstance<State, Cost>* problemInstance, size_t extra_expansion_time, size_t threadCount) : Search<State, Cost>(problemInstance){
         open = d_ary_heap();
         closed = unordered_flat_map<State, Node*, HashFn>(0,     
         [this](const State& state) {
             return this->hash(state);
         });
+        this->extra_expansion_time = extra_expansion_time;
         this->threadCount = threadCount;
     }
+    KBFS(const ProblemInstance<State, Cost>* problemInstance, size_t threadCount) : KBFS(problemInstance, 0, threadCount) {}
 
     vector<State> findPath() override {
+        this->start();
         nodes.reserve(10'000'000);
         nodes.emplace_back(this->problemInstance->initial_state,
             0, this->heuristic(this->problemInstance->initial_state), nullptr);
@@ -66,32 +69,33 @@ public:
                 }
             }
 
-            // Create threads to expand the nodes assigned to them
+            vector<vector<Node*>> allSuccessors(threadNodes.size()); // Persistent storage for successors
+
             for (size_t i = 0; i < threadNodes.size(); i++) {
                 if (i >= threadNodes.size()) break;
 
-                // allocate memory for the successors in nodes vector
-                vector<Node*> successors(this->problemInstance->maxActionCount());
+                // Allocate memory for the successors
+                allSuccessors[i].resize(this->problemInstance->maxActionCount()); // second dimension is for each action
                 for (size_t j = 0; j < this->problemInstance->maxActionCount(); j++) {
                     nodes.push_back(Node());
-                    successors[j] = &nodes.back();
+                    allSuccessors[i][j] = &nodes.back();
                 }
 
-                threads.emplace_back(&KBFS::expand, this, threadNodes[i], successors);
+                threads.emplace_back(&KBFS::expand, this, threadNodes[i], ref(allSuccessors[i]));
             }
-            
+                        
             // Wait for all threads to finish
             for (size_t i = 0; i < threads.size(); i++) {
                 threads[i].join();
             }
 
             // add the successors to the open list
-            cout << "Size of threadNodes: " << threadNodes.size() << endl;
+            // cout << "Processing batch of: " << threadNodes.size() << endl;
             for (size_t i = 0; i < threadNodes.size(); i++) {
                 this->expandedNodes++;
 
-                cout << "Size of successors: " << threadNodes[i]->successors.size() << endl;
-                for (size_t j = 0; j < this->problemInstance->maxActionCount(); j++) {
+                // cout << "Size of successors: " << threadNodes[i]->successors.size() << endl;
+                for (size_t j = 0; j < threadNodes[i]->successors.size(); j++) {
                     Node* successor = threadNodes[i]->successors[j];
                     this->generatedNodes++;
                     updateDuplicateIfNeeded(successor);
@@ -124,6 +128,13 @@ private:
                 return g > other.g;
             return f > other.f;
         }
+
+        //override << 
+        friend ostream& operator<<(ostream& os, const Node& n) {
+            // print like [f, g, h]
+            os << "[" << n.f << ", " << n.g << ", " << n.h << "]";
+            return os;
+        }
     };
     
     struct NodeCompare {
@@ -147,18 +158,19 @@ private:
                 // h should be the same because it's the same state
                 duplicateNode->f = n->f;
                 duplicateNode->parent = n->parent;
-                cout << "Handle location: " << &(duplicateNode->handle) << endl;
-                open.update(duplicateNode->handle);
+                // cout << "Handle location: " << &(duplicateNode->handle) << endl;
+                // open.update(duplicateNode->handle);
             }
             return; // skip this successor because it's already in closed list and it was already updated
         } else 
             closed.emplace(n->state, n);
+        // cout << *n << endl;
         n->handle = open.push(n);
 
     }
 
     // Node** successors is a pointer to an array of pointers to nodes up to the max action count that are allocated prior to calling this function
-    void expand(Node* n, vector<Node*> successors) {
+    void expand(Node* n, vector<Node*>& successors) {
         vector<State> successorStates = this->getSuccessors(n->state);
         for (size_t i = 0; i < successorStates.size(); i++) {
             State successorState = successorStates[i];
@@ -171,17 +183,8 @@ private:
             n->num_successors++;
         }
         n->successors = successors;
-        // resize the successors vector to the number of successors
         n->successors.resize(n->num_successors);
-
-        // for (const auto& successorState : this->getSuccessors(n->state)) {
-        //     if (successorState == n->state) continue;
-        //     Node* successor = new Node(successorState,
-        //         n->g + this->getCost(n->state, successorState),
-        //         this->heuristic(successorState),
-        //         n);
-        //     n->successors.push_back(successor);
-        // }
+        this->wasteTime(this->extra_expansion_time);
     }
 
     static vector<State> reconstructPath(
@@ -198,14 +201,13 @@ private:
     }
 
     vector<State> finish(Node* n) {
+        this->end();
         if(n == nullptr) {
             cout << "No path found" << endl;
-            this->printStats();
             return {};
         }
         cout << "Goal found: " << endl;
         cout << "Path Length: " << n->g << endl;
-        this->printStats();
         return reconstructPath(n);
     }
 }; 

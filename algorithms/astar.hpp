@@ -25,15 +25,18 @@ class AStar : public Search<State, Cost> {
     using MinHeap = boost::heap::d_ary_heap<Node*, boost::heap::arity<2>, boost::heap::mutable_<true>, boost::heap::compare<NodeCompare>>;
 
 public:
-    AStar(const ProblemInstance<State, Cost>* problemInstance) : Search<State, Cost>(problemInstance){
+    AStar(const ProblemInstance<State, Cost>* problemInstance, size_t extra_expansion_time) : Search<State, Cost>(problemInstance){
         open = MinHeap();
         closed = unordered_flat_map<State, Node*, HashFn>(0,     
         [this](const State& state) {
             return this->hash(state);
         });
+        this->extra_expansion_time = extra_expansion_time;
     }
+    AStar(const ProblemInstance<State, Cost>* problemInstance) : AStar(problemInstance, 0) {}
 
     vector<State> findPath() override {
+        this->start();
         nodes.reserve(10'000'000); // reserve 10 million nodes
         // Side note, push back is amortized O(1), so we can compare the speed loss of reserve vs push_back at some point
 
@@ -111,6 +114,7 @@ private:
                 continue; // skip this successor because it's already in closed list and it was already updated
             } else 
                 closed.emplace(successorState, successor);
+            this->wasteTime(this->extra_expansion_time);
             successor->handle = open.push(successor);
         }
     }
@@ -129,14 +133,13 @@ private:
     }
 
     vector<State> finish(Node* n) {
+        this->end();
         if(n == nullptr) {
             cout << "No path found" << endl;
-            this->printStats();
             return {};
         }
         cout << "Goal found: " << endl;
         cout << "Path Length: " << n->g << endl;
-        this->printStats();
         return reconstructPath(n);
     }
 }; 

@@ -1,5 +1,7 @@
 #include "windowed_heap.hpp"
 
+#include <boost/heap/d_ary_heap.hpp>
+
 /**
  * RecentWindowHeap is a heap paired with an array that stores copies of the most recent elements in a round robin fashion.
  */
@@ -87,5 +89,5 @@ private:
     T** items;
     size_t array_size = 0;
     size_t round_robin_index = 0;
-    std::priority_queue<T, std::vector<T>, std::greater<T>> min_heap;
+    boost::heap::d_ary_heap<T, boost::heap::arity<2>, boost::heap::mutable_<true>> min_heap;
 };

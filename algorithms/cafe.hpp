@@ -31,22 +31,23 @@ class CAFE : public Search<State, Cost> {
     atomic<size_t> threadsCompleted{0}; // Track total completed threads
 
 public:
-    CAFE(const ProblemInstance<State, Cost>* problemInstance, size_t threadCount) : Search<State, Cost>(problemInstance) {
+    CAFE(const ProblemInstance<State, Cost>* problemInstance, size_t extra_expansion_time, size_t threadCount) : Search<State, Cost>(problemInstance) {
         open = RecentWindowHeap<Node*>(PRE_HEAP_SIZE);
         closed = unordered_flat_map<State, Node*, HashFn>(0,     
             [this](const State& state) {
                 return this->hash(state);
             });
+        this->extra_expansion_time = extra_expansion_time;
         this->threadCount = threadCount;
     }
+    CAFE(const ProblemInstance<State, Cost>* problemInstance, size_t threadCount) : CAFE(problemInstance, 0, threadCount) {}
 
     
     vector<State> findPath() override {
         this->start();
-
-        Node* startNode = new Node(this->problemInstance->initial_state);
-        startNode->h = this->heuristic(this->problemInstance->initial_state);
-        startNode->f = startNode->h;
+        nodes.reserve(10'000'000);
+        nodes.emplace_back(this->problemInstance->initial_state, 0, this->heuristic(this->problemInstance->initial_state), nullptr);
+        Node* startNode = &nodes.back();
 
         vector<jthread> threads;
         stop_source stopSource;
@@ -74,7 +75,7 @@ public:
             vector<Node*>* computedSuccessors;
 
             if (current->status != Status::DONE) { // if not done, do it manually
-                expand(current);
+                expand(current, nodes);
                 this->manualExpandedNodes++;
             }
             computedSuccessors = &current->successors;
@@ -108,6 +109,7 @@ public:
 private:
     size_t manualExpandedNodes = 0;
     size_t speculatedNodes = 0;
+    vector<Node> nodes;
 
     enum Status {
         UNVISITED = 0,
@@ -124,6 +126,13 @@ private:
 
         Node() = default;
         Node(State s) : state(s), parent(nullptr) {}
+        Node(State s, Cost g, Cost h, Node* parent) : state(s), g(g), h(h), parent(parent) {
+            f = g + h;
+        }
+        Node(Node* n) : state(n->state), f(n->f), g(n->g), h(n->h), parent(n->parent) {}
+        Node(Node&& n) : state(n.state), f(n.f), g(n.g), h(n.h), parent(n.parent) {
+            status.store(n.status.load()); // atomic copy
+        }
 
         bool operator > (const Node& other) const { 
             if (f == other.f) 
@@ -138,6 +147,8 @@ private:
     };
 
     void thread_speculate(size_t id, stop_token st) {
+        vector<Node> nodePool;
+        nodePool.reserve(10'000'000);
         // wait until there is something at the ID
         while (id < open.size()) {
             this_thread::yield();
@@ -151,13 +162,13 @@ private:
                 continue;
             }
             Node* n = option.value();
-            expand(n);
+            expand(n, nodePool);
             speculatedNodes++;
         }
         threadsCompleted.fetch_add(1, std::memory_order_relaxed); // Notifying that this thread is done
     }
 
-    void expand(Node* n) {
+    void expand(Node* n, vector<Node>& nodePool) {
         if (n->status != Status::UNVISITED) return;
         n->status = Status::WORKING;
         this->expandedNodes++;
@@ -165,16 +176,16 @@ private:
         n->successors.reserve(successors.size());
         for (const auto& successorState : successors) {
             if (successorState == n->state) continue; // skip the parent state
-            this->generatedNodes++;
 
             Node* successor = new Node(successorState);
-            successor->g = n->g + this->getCost(n->state, successorState);
-            successor->h = this->heuristic(successorState);
-            successor->f = n->g + successor->h;
-            successor->parent = n;
+            Cost g = n->g + this->getCost(n->state, successorState);
+            Cost h = this->heuristic(successorState);
+            Node* parent = n;
+            nodePool.emplace_back(successorState, g, h, parent);
 
             n->successors.push_back(successor); // Add the successor to the parent's list of successors
         }
+        this->wasteTime(this->extra_expansion_time);
         n->status = Status::DONE;
     }
 

@@ -82,7 +82,7 @@ namespace Pathfinding {
             // Read the grid
             for (size_t i = 0; i < dimr; i++) {
                 getline(input, line); // Read a full row of the grid
-                cout << line << endl;
+                // cout << line << endl;
                 for (size_t j = 0; j < dimc; j++) {
                     char curr = line[j];
                     if (curr == GOAL) {

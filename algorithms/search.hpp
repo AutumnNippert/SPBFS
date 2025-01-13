@@ -25,6 +25,8 @@ public:
     // clock
     std::chrono::high_resolution_clock::time_point clockStart;
 
+    size_t extra_expansion_time = 0;
+
     size_t expandedNodes = 0; // Number of nodes expanded during the search
     size_t generatedNodes = 0; // Number of nodes generated during the search
     size_t duplicatedNodes = 0; // Number of nodes duplicated during the search
@@ -37,6 +39,14 @@ public:
     inline size_t hash(const State& state) const { return problemInstance->hash(state); }
 
     virtual std::vector<State> findPath() = 0;
+
+    inline void wasteTime(std::size_t n){
+        std::size_t s_i = 0;
+        volatile std::size_t * sum_i = &s_i;
+        for(std::size_t j = 0; j < n*1000; j++){
+            *sum_i += j;
+        }
+    }
 
     // Function to print search statistics
     void printStats() {
@@ -56,6 +66,4 @@ public:
         std::cout << "Elapsed time: " << elapsed.count() << "s" << std::endl;
         this->printStats();
     }
-
-
 }; 
