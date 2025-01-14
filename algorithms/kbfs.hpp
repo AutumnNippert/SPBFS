@@ -33,8 +33,11 @@ class KBFS : public Search<State, Cost> {
 
 public:
     KBFS(const ProblemInstance<State, Cost>* problemInstance, size_t extra_expansion_time, size_t threadCount) : Search<State, Cost>(problemInstance){
-        open = d_ary_heap();
         closed = unordered_flat_map<State, Node*, HashFn>(0,     
+        [this](const State& state) {
+            return this->hash(state);
+        });
+        openMap = unordered_flat_map<State, Node*, HashFn>(0,     
         [this](const State& state) {
             return this->hash(state);
         });
@@ -63,6 +66,7 @@ public:
                 threadNodes.push_back(open.top());
                 Node* popped = threadNodes.back();
                 open.pop();
+                openMap.erase(popped->state); // remove it from openMap
                 if (popped->h == 0) {
                     return finish(popped); // if node is goal, return the path
                     // the first node found in the open list is the shortest path unless multiple nodes were expanded, but if h is 0, the node with the smallest g value is the shortest path, which will also have a smaller f value
@@ -144,8 +148,9 @@ private:
     };
 
     vector<Node> nodes;
-    d_ary_heap open;
+    d_ary_heap open{};
     unordered_flat_map<State, Node*, HashFn> closed;
+    unordered_flat_map<State, Node*, HashFn> openMap;
 
     void updateDuplicateIfNeeded(Node* n){
         // check and updates the duplicate node
@@ -155,21 +160,24 @@ private:
             this->duplicatedNodes++;
             if (duplicateNode->f >= n->f) {
                 duplicateNode->g = n->g;
-                // h should be the same because it's the same state
                 duplicateNode->f = n->f;
                 duplicateNode->parent = n->parent;
-                // cout << "Handle location: " << &(duplicateNode->handle) << endl;
-                // open.update(duplicateNode->handle);
+                
+                // if its in openMap, update the handle
+                auto openDuplicate = openMap.find(n->state);
+                if (openDuplicate != openMap.end()) {
+                    open.update(openDuplicate->second->handle);
+                }
             }
             return; // skip this successor because it's already in closed list and it was already updated
         } else 
             closed.emplace(n->state, n);
-        // cout << *n << endl;
         n->handle = open.push(n);
-
+        // add to openMap
+        openMap.emplace(n->state, n);
     }
 
-    // Node** successors is a pointer to an array of pointers to nodes up to the max action count that are allocated prior to calling this function
+    // vector<Node*>& successors is a reference to the vector of successors for the node n that will be expanded
     void expand(Node* n, vector<Node*>& successors) {
         vector<State> successorStates = this->getSuccessors(n->state);
         for (size_t i = 0; i < successorStates.size(); i++) {
