@@ -37,7 +37,7 @@ class CAFE : public Search<State, Cost> {
     using handle_type = typename d_ary_heap::handle_type;
 
     d_ary_heap open{};
-    ImmutableCircularQueue<Node*, PRE_HEAP_SIZE> openQueue;
+    ImmutableCircularQueue<Node*> openQueue;
     unordered_flat_map<State, Node*, HashFn> closed;
     size_t threadCount;
     atomic<size_t> threadsCompleted{0}; // Track total completed threads
@@ -50,13 +50,14 @@ public:
             });
         this->extra_expansion_time = extra_expansion_time;
         this->threadCount = threadCount;
+        this->openQueue = ImmutableCircularQueue<Node*>(threadCount);
     }
     CAFE(const ProblemInstance<State, Cost>* problemInstance, size_t threadCount) : CAFE(problemInstance, 0, threadCount) {}
 
     
     vector<State> findPath() override {
         this->start();
-        nodes.reserve(10'000'000);
+        nodes.reserve(20'000'000);
         nodes.emplace_back(this->problemInstance->initial_state, 0, this->heuristic(this->problemInstance->initial_state), nullptr);
         Node* startNode = &nodes.back();
         startNode->status.store(Status::UNVISITED, std::memory_order_relaxed);
@@ -74,7 +75,7 @@ public:
         for (size_t i = 0; i < this->threadCount; i++) {
             // create a new vector for each thread
             threadNodePools.push_back(new vector<Node>());
-            threadNodePools[i]->reserve(10'000'000);
+            threadNodePools[i]->reserve(20'000'000);
             threads.emplace_back(&CAFE::thread_speculate, this, i, stopSource.get_token(), threadNodePools[i]);
         }
         cout << "Threads Initialized" << endl;
@@ -99,31 +100,24 @@ public:
             }
 
             vector<Node*>* computedSuccessors;
-            bool speculated = false;
             Status expected = Status::UNVISITED;
             if (current->status.compare_exchange_strong(expected, Status::WORKING, 
                                                             std::memory_order_acquire, 
-                                                            std::memory_order_relaxed)) {       
-                // cout << "Manual Expansion" << endl;
+                                                            std::memory_order_relaxed)) {     
                 expand(current, nodes);
                 this->manualExpandedNodes++;
                 current->status.store(Status::DONE, std::memory_order_release);
             } else {
-                // cout << "Speculated Expansion" << endl;
-                speculated = true;
                 // wait until its Done
                 while (current->status.load(std::memory_order_acquire) != Status::DONE) {
-                    // cout << "Waiting for Done" << endl;
                     this_thread::yield();
                 }
             }
             computedSuccessors = &current->successors; // memory address of the successors vector
             
             // add successors to open
-            // if(speculated) cout << "From Speculated Nodes ";
-            // cout << "Adding " << computedSuccessors->size() << " Successors to Open" << endl;
+            this->expandedNodes++;
             for (Node* successor : *computedSuccessors) {
-                // if(speculated) cout << "\t\t" << successor->state << endl;
                 this->generatedNodes++;
 
                 // duplicate detection
@@ -218,27 +212,17 @@ private:
         }
     };
 
-    // ISSUE: Once other threads are done, the nodes they have posession of may be being expanded by this thread, causing invalid read of memory
     void thread_speculate(size_t id, stop_token st, vector<Node>* nodePool) {
-        // cout << "Thread " << id << " is starting" << endl;
-
         // wait until there is something at the ID
         while (openQueue.size() < id) {
             this_thread::yield();
             if(st.stop_requested()) {
-                // cout << "Thread " << id << " is stopping" << endl;
                 break;
             }
         }
 
-        // cout << "Thread " << id << " released" << endl;
-
-        // While there are still nodes to expand
-        while (!openQueue.empty()) {
-            if(st.stop_requested()) {
-                // cout << "Thread " << id << " is stopping" << endl;
-                break;
-            }
+        // While no stop requested
+        while (!st.stop_requested()) {
 
             optional<Node*> option = openQueue.get(id);
             if (!option.has_value()) {
@@ -256,20 +240,17 @@ private:
                 // If the CAS fails, the status was not `UNVISITED`
                 continue;
             }
-            // cout << "Thread " << id << " is expanding" << endl;
             expand(n, *nodePool);
             n->status.store(Status::DONE, std::memory_order_release);
             {
-                lock_guard<mutex> lock(mtx); // for adding to speculatedNodes
+                lock_guard<mutex> lock(mtx);
                 this->speculatedNodes++;
             }
         }
-        // cout << "Thread " << id << " is done" << endl;
         threadsCompleted.fetch_add(1, std::memory_order_relaxed); // Notifying that this thread is done
     }
 
     void expand(Node* n, vector<Node>& nodePool) {
-        this->expandedNodes++;
         assert(n->status.load(std::memory_order_acquire) != Status::DONE && "BAD!:: NODE ALREADY COMPLETE"); // Node should not be expanded twice
         auto successors = this->getSuccessors(n->state);
         n->successors.reserve(successors.size());
@@ -284,7 +265,7 @@ private:
             Node* successor = &nodePool.back();
             successor->status.store(Status::UNVISITED, std::memory_order_relaxed);
 
-            n->successors.push_back(successor); // Add the successor to the parent's list of successors
+            n->successors.push_back(successor); // Add the successor* to the parent's list of successors
         }
         this->wasteTime(this->extra_expansion_time);
         // cout << "\tNode Expanded" << endl;

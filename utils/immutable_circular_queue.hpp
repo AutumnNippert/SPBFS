@@ -1,33 +1,34 @@
 #pragma once
 
-#include <array>
+#include <vector>
 #include <optional>
 #include <ostream>
 
-template <typename T, size_t MaxSize>
+template <typename T>
 class ImmutableCircularQueue {
 public:
-    ImmutableCircularQueue() {
-        static_assert(MaxSize > 0, "MaxSize must be greater than 0");
+    // default constructor
+    ImmutableCircularQueue() = default;
+    explicit ImmutableCircularQueue(size_t maxSize) : max_size(maxSize) {
+        items.resize(max_size);
     }
 
     ~ImmutableCircularQueue() = default;
 
     // Returns a new CircularQueue with the item added
     ImmutableCircularQueue push(T item) const {
+        if (max_size == 0) return *this; // I think it segfaults trying to do this otherwise
+        
         ImmutableCircularQueue newQueue = *this; // Copy current state
 
         // Store the item
         newQueue.items[newQueue.round_robin_index] = item;
 
         // Increment round_robin_index
-        newQueue.round_robin_index++;
-        if (newQueue.round_robin_index >= MaxSize) {
-            newQueue.round_robin_index = 0;
-        }
+        newQueue.round_robin_index = (newQueue.round_robin_index + 1) % max_size;
 
-        // Increment size if it is less than MaxSize
-        if (newQueue.curr_size < MaxSize) {
+        // Increment size if it is less than max_size
+        if (newQueue.curr_size < max_size) {
             newQueue.curr_size++;
         }
 
@@ -39,7 +40,7 @@ public:
         if (curr_size == 0) {
             return std::nullopt;
         }
-        size_t index = round_robin_index == 0 ? MaxSize - 1 : round_robin_index - 1;
+        size_t index = round_robin_index == 0 ? max_size - 1 : round_robin_index - 1;
         return items[index];
     }
 
@@ -59,7 +60,7 @@ public:
     }
 
     // Overload for printing the queue
-    friend std::ostream& operator<<(std::ostream& os, const ImmutableCircularQueue<T, MaxSize>& queue) {
+    friend std::ostream& operator<<(std::ostream& os, const ImmutableCircularQueue<T>& queue) {
         os << "[";
         for (size_t i = 0; i < queue.curr_size; i++) {
             os << queue.items[i];
@@ -72,7 +73,8 @@ public:
     }
 
 private:
-    std::array<T, MaxSize> items{};
+    std::vector<T> items;
+    size_t max_size;
     size_t curr_size = 0;
     size_t round_robin_index = 0;
 };
