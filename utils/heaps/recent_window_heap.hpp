@@ -1,38 +1,52 @@
 #include "windowed_heap.hpp"
 
+#include <array>
 #include <boost/heap/d_ary_heap.hpp>
+
+#include <mutex>
+
+using std::lock_guard;
+using std::mutex;
 
 /**
  * RecentWindowHeap is a heap paired with an array that stores copies of the most recent elements in a round robin fashion.
  */
-template <typename T>
-class RecentWindowHeap : public WindowedHeap<T> {
+template <typename T, typename Comparator, typename heap_type, typename handle_type, size_t MaxSize>
+class RecentWindowHeap {
+
 public:
-    RecentWindowHeap(size_t max_size) : max_size(max_size), items(new T*[max_size]) {
-        assert (max_size > 0);
+    RecentWindowHeap(){
+        static_assert(MaxSize > 0, "MaxSize must be greater than 0");
     }
-    RecentWindowHeap(): RecentWindowHeap(32) {}
+    // Disable copy semantics
+    RecentWindowHeap(const RecentWindowHeap&) = delete;
+    RecentWindowHeap& operator=(const RecentWindowHeap&) = delete;
 
-    ~RecentWindowHeap() {
-        delete[] items;
-    }
+    // Enable move semantics
+    RecentWindowHeap(RecentWindowHeap&& other) noexcept = default;
+    RecentWindowHeap& operator=(RecentWindowHeap&& other) noexcept = default;
+    
+    ~RecentWindowHeap() = default;
 
-    void push(T item) {
-        min_heap.push(item);
+    handle_type push(T item) {
+        lock_guard<mutex> lock(mtx);
+        auto handle = min_heap.push(item);
         items[round_robin_index++] = &item; // store pointer to the item
 
-        // increment array_size if it is less than max_size
-        if (array_size < max_size) {
+        // increment array_size if it is less than MaxSize
+        if (array_size < MaxSize) {
             array_size++;
         }
 
         // reset round_robin_index
-        if (round_robin_index >= max_size) {
+        if (round_robin_index >= MaxSize) {
             round_robin_index = 0;
         }
+        return handle;
     }
 
-    optional<T> pop() override {
+    optional<T> pop() {\
+        lock_guard<mutex> lock(mtx);
         if(min_heap.empty()) {
             return nullopt;
         }
@@ -41,7 +55,7 @@ public:
         return t;
     }
 
-    optional<T> peek() const override {
+    optional<T> peek() const {
         if (min_heap.empty()) {
             return nullopt;
         } else {
@@ -49,7 +63,7 @@ public:
         }
     }
 
-    optional<T> get(size_t index) const override {
+    optional<T> get(size_t index) const {
         if (index >= array_size && index >= min_heap.size()) {
             return nullopt;
         } else {
@@ -57,15 +71,19 @@ public:
         }
     }
 
-    size_t size() const override {
+    size_t size() const {
         return min_heap.size();
     }
 
-    bool empty() const override {
+    bool empty() const {
         return min_heap.size() == 0;
     }
 
-    friend std::ostream& operator <<(std::ostream& os, const RecentWindowHeap<T>& arrayHeap) {
+    void update(handle_type handle) {
+        min_heap.update(handle);
+    }
+
+    friend std::ostream& operator <<(std::ostream& os, const RecentWindowHeap<T, Comparator, heap_type, handle_type, MaxSize>& arrayHeap) {
         // print as [1, 2, 3, 4]
         os << "[";
         for (size_t i = 0; i < arrayHeap.array_size; i++) {
@@ -85,9 +103,9 @@ public:
     }
 
 private:
-    size_t max_size;
-    T** items;
+    std::array<T*, MaxSize> items;
     size_t array_size = 0;
     size_t round_robin_index = 0;
-    boost::heap::d_ary_heap<T, boost::heap::arity<2>, boost::heap::mutable_<true>> min_heap;
+    heap_type min_heap;
+    mutex mtx;
 };

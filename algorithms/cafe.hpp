@@ -8,7 +8,7 @@ using boost::unordered_flat_map;
 #include "immutable_circular_queue.hpp"
 
 #include "recent_window_heap.hpp"
-const size_t PRE_HEAP_SIZE = 4;
+const size_t PRE_HEAP_SIZE = 8;
 
 #include <algorithm>
 #include <vector>
@@ -69,8 +69,13 @@ public:
         startNode->handle = open.push(startNode);
         openQueue = openQueue.push(startNode);
 
+        vector<vector<Node>*> threadNodePools;
+
         for (size_t i = 0; i < this->threadCount; i++) {
-            threads.emplace_back(&CAFE::thread_speculate, this, i, stopSource.get_token());
+            // create a new vector for each thread
+            threadNodePools.push_back(new vector<Node>());
+            threadNodePools[i]->reserve(10'000'000);
+            threads.emplace_back(&CAFE::thread_speculate, this, i, stopSource.get_token(), threadNodePools[i]);
         }
         cout << "Threads Initialized" << endl;
 
@@ -89,8 +94,6 @@ public:
             open.pop();
 
             if (current->h == 0){
-                cout << "Requesting Stop" << endl;
-                stopSource.request_stop();
                 goal = current;
                 break;
             }
@@ -146,15 +149,13 @@ public:
         }
 
         // request stop
-        cout << "Requesting Stop, exiting while loop" << endl;
+        cout << "Requesting Stop" << endl;
         stopSource.request_stop();
 
         // join threads
         for(size_t i = 0; i < threads.size(); i++) {
             threads[i].join();
-            cout << "Thread " << i << " joined" << endl;
         }
-        cout << "All threads joined" << endl;
         return finish(goal);
     }
 
@@ -175,7 +176,7 @@ private:
         State state;
         Cost g{}, h{}, f{};
         Node* parent = nullptr;
-        std::atomic<Status> status; // 0 = unvisited, 1 = working, 2 = done
+        std::atomic<Status> status{Status::UNVISITED};
         vector<Node*> successors;
 
         // Default constructor
@@ -218,26 +219,24 @@ private:
     };
 
     // ISSUE: Once other threads are done, the nodes they have posession of may be being expanded by this thread, causing invalid read of memory
-    void thread_speculate(size_t id, stop_token st) {
-        cout << "Thread " << id << " is starting" << endl;
-        vector<Node> nodePool;
-        nodePool.reserve(10'000'000);
+    void thread_speculate(size_t id, stop_token st, vector<Node>* nodePool) {
+        // cout << "Thread " << id << " is starting" << endl;
 
         // wait until there is something at the ID
         while (openQueue.size() < id) {
             this_thread::yield();
             if(st.stop_requested()) {
-                cout << "Thread " << id << " is stopping" << endl;
+                // cout << "Thread " << id << " is stopping" << endl;
                 break;
             }
         }
 
-        cout << "Thread " << id << " released" << endl;
+        // cout << "Thread " << id << " released" << endl;
 
         // While there are still nodes to expand
         while (!openQueue.empty()) {
             if(st.stop_requested()) {
-                cout << "Thread " << id << " is stopping" << endl;
+                // cout << "Thread " << id << " is stopping" << endl;
                 break;
             }
 
@@ -258,23 +257,20 @@ private:
                 continue;
             }
             // cout << "Thread " << id << " is expanding" << endl;
-            expand(n, nodePool);
+            expand(n, *nodePool);
             n->status.store(Status::DONE, std::memory_order_release);
             {
                 lock_guard<mutex> lock(mtx); // for adding to speculatedNodes
                 this->speculatedNodes++;
             }
         }
-        cout << "Thread " << id << " is done" << endl;
+        // cout << "Thread " << id << " is done" << endl;
         threadsCompleted.fetch_add(1, std::memory_order_relaxed); // Notifying that this thread is done
     }
 
     void expand(Node* n, vector<Node>& nodePool) {
         this->expandedNodes++;
-        if(n->status.load(std::memory_order_acquire) == Status::DONE) {
-            cout << "BAD!:: NODE ALREADY COMPLETE" << endl;
-            return;
-        }
+        assert(n->status.load(std::memory_order_acquire) != Status::DONE && "BAD!:: NODE ALREADY COMPLETE"); // Node should not be expanded twice
         auto successors = this->getSuccessors(n->state);
         n->successors.reserve(successors.size());
         for (const auto& successorState : successors) {

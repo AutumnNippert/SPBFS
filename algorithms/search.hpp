@@ -43,7 +43,7 @@ public:
     inline void wasteTime(std::size_t n){
         std::size_t s_i = 0;
         volatile std::size_t * sum_i = &s_i;
-        for(std::size_t j = 0; j < n*1000; j++){
+        for(std::size_t j = 0; j < n; j++){
             *sum_i += j;
         }
     }
