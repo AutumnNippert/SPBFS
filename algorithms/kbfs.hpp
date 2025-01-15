@@ -29,6 +29,7 @@ class KBFS : public Search<State, Cost> {
     struct Node;
     struct NodeCompare;
     using d_ary_heap = boost::heap::d_ary_heap<Node*, boost::heap::arity<2>, boost::heap::mutable_<true>, boost::heap::compare<NodeCompare>>;
+    using handle_type = typename d_ary_heap::handle_type;
 
 
 public:

@@ -39,7 +39,7 @@ namespace Pathfinding {
             for (const auto& goal : goals) {
                 ss << goal.row << ", " << goal.col << "; ";
             }
-            ss << "]}" << endl;
+            ss << "]}";
             return ss.str();
         }
     };
