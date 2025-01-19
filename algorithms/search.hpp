@@ -1,6 +1,6 @@
 #pragma once
 
-#include "problem_instance.hpp"
+#include "../problems/problem_instance.hpp"
 #include <vector>
 #include <functional>
 #include <iostream>

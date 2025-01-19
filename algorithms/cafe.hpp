@@ -4,16 +4,14 @@
 #include <boost/unordered/unordered_flat_map.hpp>
 using boost::unordered_flat_map;
 
-#include "mutable_circular_queue.hpp"
-#include "immutable_circular_queue.hpp"
+#include "../utils/immutable_circular_queue.hpp"
 
-#include "recent_window_heap.hpp"
+#include "../utils/heaps/recent_window_heap.hpp"
 const size_t PRE_HEAP_SIZE = 8;
 
 #include <algorithm>
 #include <vector>
 #include <iostream>
-#include <optional>
 
 #include <atomic>
 #include <thread>

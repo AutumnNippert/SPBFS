@@ -4,7 +4,6 @@
 #include <boost/unordered/unordered_flat_map.hpp>
 using boost::unordered_flat_map;
 
-#include <queue>
 #include <boost/heap/d_ary_heap.hpp>
 
 #include <algorithm>

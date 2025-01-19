@@ -94,17 +94,18 @@ public:
 
     void search(stop_token st, Node** finish_state) {
         while (!st.stop_requested()) {
-            if (open.empty()) {
-                if(threadsCompleted.load() == this->threadCount-1) {
-                    break;
+            Node* current;
+            {
+                const lock_guard<mutex> lock(open_mutex); // lock for heap operations
+                if (open.empty()) {
+                    if(threadsCompleted.load() == this->threadCount-1) {
+                        break;
+                    }
+                    continue;
                 }
-                continue;
+                current = open.top();
+                open.pop();
             }
-
-            lock_guard<mutex> lock(mtx); // lock for heap operations
-
-            Node* current = open.top();
-            open.pop();
             if (current->h == 0){
                 *finish_state = current; // update the output pointer
                 break;
@@ -144,7 +145,9 @@ private:
     MinHeap open;
     unordered_flat_map<State, Node*, HashFn> closed;
     size_t threadCount = 0;
-    mutex mtx{};
+    mutex open_mutex{};
+    mutex closed_mutex{};
+    mutex nodes_mutex{};
     atomic<size_t> threadsCompleted{0}; // Track total completed threads
 
     void expand(Node* n) {
@@ -152,30 +155,44 @@ private:
         for (const auto& successorState : this->getSuccessors(n->state)) {
             if (successorState == n->state) continue; // skip the parent state
             this->generatedNodes++;
+            this->wasteTime(this->extra_expansion_time);
             // Generate the successor node and calculate its f, g, and h values
-            nodes.emplace_back(successorState,
+            Node* successor;
+            {
+                const lock_guard<mutex> lock(nodes_mutex);
+                nodes.emplace_back(successorState,
                 n->g + this->getCost(n->state, successorState),
                 this->heuristic(successorState),
                 n);
-            Node* successor = &nodes.back();
-
-            // Check if successor is already in closed list
-            auto duplicate = closed.find(successorState);
-            if (duplicate != closed.end()) { 
-                Node* duplicateNode = duplicate->second;
-                this->duplicatedNodes++;
-                if (duplicateNode->f > successor->f) { // only > because less effort to skip if they have the same f value
-                    duplicateNode->g = successor->g;
-                    // h should be the same because it's the same state
-                    duplicateNode->f = successor->f;
-                    duplicateNode->parent = successor->parent;
-                    open.update(duplicateNode->handle);
-                }
-                continue; // skip this successor because it's already in closed list and it was already updated
-            } else 
-                closed.emplace(successorState, successor);
-            this->wasteTime(this->extra_expansion_time);
-            successor->handle = open.push(successor);
+                successor = &nodes.back();
+            }
+            
+            {
+                const lock_guard<mutex> lock(closed_mutex);
+                // Check if successor is already in closed list
+                auto duplicate = closed.find(successorState);
+                if (duplicate != closed.end()) { 
+                    Node* duplicateNode = duplicate->second;
+                    this->duplicatedNodes++;
+                    if (duplicateNode->f > successor->f) { // only > because less effort to skip if they have the same f value
+                        duplicateNode->g = successor->g;
+                        // h should be the same because it's the same state
+                        duplicateNode->f = successor->f;
+                        duplicateNode->parent = successor->parent;
+                        {
+                            const lock_guard<mutex> lock(open_mutex);
+                            open.update(duplicateNode->handle);
+                        }
+                    }
+                    continue; // skip this successor because it's already in closed list and it was already updated
+                } else{
+                    closed.emplace(successorState, successor);
+                    {
+                        const lock_guard<mutex> lock(open_mutex);
+                        successor->handle = open.push(successor);
+                    }
+                } 
+            }
         }
     }
 
