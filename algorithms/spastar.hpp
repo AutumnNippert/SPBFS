@@ -40,6 +40,10 @@ public:
         });
         this->extra_expansion_time = extra_expansion_time;
         this->threadCount = threadCount;
+
+        this->searchStats["Algorithm"] = "SPA*";
+        this->searchStats["Extra Expansion Time"] = extra_expansion_time;
+        this->searchStats["Threads"] = threadCount;
     }
     SPAStar(const ProblemInstance<State, Cost>* problemInstance) : SPAStar(problemInstance, 0, 0) {}
 
@@ -89,22 +93,26 @@ public:
                 }
             }
         }
+        if (finish_state != nullptr)
+            this->pathLength = finish_state->g;
         return finish(finish_state);
     }
 
     void search(stop_token st, Node** finish_state) {
         while (!st.stop_requested()) {
-            if (open.empty()) {
-                if(threadsCompleted.load() == this->threadCount-1) {
-                    break;
+            Node* current;
+            {
+                lock_guard<mutex> lock(open_mutex); // lock for heap operations
+                if (open.empty()) {
+                    if(threadsCompleted.load() == this->threadCount-1) {
+                        break;
+                    }
+                    continue;
                 }
-                continue;
+                current = open.top();
+                open.pop();
+
             }
-
-            lock_guard<mutex> lock(mtx); // lock for heap operations
-
-            Node* current = open.top();
-            open.pop();
             if (current->h == 0){
                 *finish_state = current; // update the output pointer
                 break;
@@ -144,38 +152,73 @@ private:
     MinHeap open;
     unordered_flat_map<State, Node*, HashFn> closed;
     size_t threadCount = 0;
-    mutex mtx{};
+    mutex open_mutex{};
+    mutex closed_mutex{};
+    mutex nodes_mutex{};
+
+    // These are just for data collection
+    mutex generated_mutex{};
+    mutex expanded_mutex{};
+    mutex duplicated_mutex{};
+    
     atomic<size_t> threadsCompleted{0}; // Track total completed threads
 
     void expand(Node* n) {
-        this->expandedNodes++;
+        {
+            lock_guard<mutex> lock(expanded_mutex);
+            this->expandedNodes++;
+        }
         for (const auto& successorState : this->getSuccessors(n->state)) {
             if (successorState == n->state) continue; // skip the parent state
-            this->generatedNodes++;
-            // Generate the successor node and calculate its f, g, and h values
-            nodes.emplace_back(successorState,
-                n->g + this->getCost(n->state, successorState),
-                this->heuristic(successorState),
-                n);
-            Node* successor = &nodes.back();
-
-            // Check if successor is already in closed list
-            auto duplicate = closed.find(successorState);
-            if (duplicate != closed.end()) { 
-                Node* duplicateNode = duplicate->second;
-                this->duplicatedNodes++;
-                if (duplicateNode->f > successor->f) { // only > because less effort to skip if they have the same f value
-                    duplicateNode->g = successor->g;
-                    // h should be the same because it's the same state
-                    duplicateNode->f = successor->f;
-                    duplicateNode->parent = successor->parent;
-                    open.update(duplicateNode->handle);
-                }
-                continue; // skip this successor because it's already in closed list and it was already updated
-            } else 
-                closed.emplace(successorState, successor);
+            {
+                lock_guard<mutex> lock(generated_mutex);
+                this->generatedNodes++;
+            }
             this->wasteTime(this->extra_expansion_time);
-            successor->handle = open.push(successor);
+            // Generate the successor node and calculate its f, g, and h values
+            Node* successor;
+            {
+                lock_guard<mutex> lock(nodes_mutex);
+                nodes.emplace_back(successorState,
+                    n->g + this->getCost(n->state, successorState),
+                    this->heuristic(successorState),
+                    n);
+                successor = &nodes.back();
+            }
+
+            {
+                const lock_guard<mutex> lock(closed_mutex);
+                // Check if successor is already in closed list
+                auto duplicate = closed.find(successorState);
+                if (duplicate != closed.end()) { 
+                    Node* duplicateNode = duplicate->second;
+                    if (duplicateNode->f > successor->f) { // only > because less effort to skip if they have the same f value
+                        {
+                            lock_guard<mutex> lock(duplicated_mutex);
+                            this->duplicatedNodes++;
+                        }
+                        duplicateNode->g = successor->g;
+                        // h should be the same because it's the same state
+                        duplicateNode->f = successor->f;
+                        duplicateNode->parent = successor->parent;
+                        {
+                            const lock_guard<mutex> lock(open_mutex);
+                            open.update(duplicateNode->handle);
+                        }
+                    }
+                    {
+                        lock_guard<mutex> lock(generated_mutex);
+                        this->generatedNodes--; // undo the generation of the duplicate
+                    }
+                    continue; // skip this successor because it's already in closed list and it was already updated
+                } else {
+                    closed.emplace(successorState, successor);
+                    {
+                        const lock_guard<mutex> lock(open_mutex);
+                        successor->handle = open.push(successor);
+                    }
+                }
+            }
         }
     }
 
@@ -195,11 +238,8 @@ private:
     vector<State> finish(Node* n) {
         this->end();
         if(n == nullptr) {
-            cout << "No path found" << endl;
             return {};
         }
-        cout << "Goal found: " << endl;
-        cout << "Path Length: " << n->g << endl;
         return reconstructPath(n);
     }
 }; 

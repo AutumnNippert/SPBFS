@@ -4,7 +4,6 @@
 #include <boost/unordered/unordered_flat_map.hpp>
 using boost::unordered_flat_map;
 
-#include <queue>
 #include <boost/heap/d_ary_heap.hpp>
 
 #include <algorithm>
@@ -32,6 +31,10 @@ public:
             return this->hash(state);
         });
         this->extra_expansion_time = extra_expansion_time;
+
+        this->searchStats["Algorithm"] = "A*";
+        this->searchStats["Extra Expansion Time"] = extra_expansion_time;
+        this->searchStats["Threads"] = 1;
     }
     AStar(const ProblemInstance<State, Cost>* problemInstance) : AStar(problemInstance, 0) {}
 
@@ -50,8 +53,10 @@ public:
         while (!open.empty()) {
             Node* current = open.top();
             open.pop();
-            if (current->h == 0)
+            if (current->h == 0){
+                this->pathLength = current->g;
                 return finish(current);
+            }
             expand(current);
         }
         return finish(nullptr);
@@ -103,14 +108,15 @@ private:
             auto duplicate = closed.find(successorState);
             if (duplicate != closed.end()) { 
                 Node* duplicateNode = duplicate->second;
-                this->duplicatedNodes++;
                 if (duplicateNode->f > successor->f) { // only > because less effort to skip if they have the same f value
+                    this->duplicatedNodes++;
                     duplicateNode->g = successor->g;
                     // h should be the same because it's the same state
                     duplicateNode->f = successor->f;
                     duplicateNode->parent = successor->parent;
                     open.update(duplicateNode->handle);
                 }
+                this->generatedNodes--; // undo the generation of the duplicate
                 continue; // skip this successor because it's already in closed list and it was already updated
             } else 
                 closed.emplace(successorState, successor);
@@ -135,11 +141,8 @@ private:
     vector<State> finish(Node* n) {
         this->end();
         if(n == nullptr) {
-            cout << "No path found" << endl;
             return {};
         }
-        cout << "Goal found: " << endl;
-        cout << "Path Length: " << n->g << endl;
         return reconstructPath(n);
     }
 }; 

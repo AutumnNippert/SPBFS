@@ -44,6 +44,10 @@ public:
         });
         this->extra_expansion_time = extra_expansion_time;
         this->threadCount = threadCount;
+
+        this->searchStats["Algorithm"] = "KBFS";
+        this->searchStats["Extra Expansion Time"] = extra_expansion_time;
+        this->searchStats["Threads"] = threadCount;
     }
     KBFS(const ProblemInstance<State, Cost>* problemInstance, size_t threadCount) : KBFS(problemInstance, 0, threadCount) {}
 
@@ -69,6 +73,7 @@ public:
                 open.pop();
                 openMap.erase(popped->state); // remove it from openMap
                 if (popped->h == 0) {
+                    this->pathLength = popped->g;
                     return finish(popped); // if node is goal, return the path
                     // the first node found in the open list is the shortest path unless multiple nodes were expanded, but if h is 0, the node with the smallest g value is the shortest path, which will also have a smaller f value
                 }
@@ -158,8 +163,8 @@ private:
         auto duplicate = closed.find(n->state);
         if (duplicate != closed.end()) { 
             Node* duplicateNode = duplicate->second;
-            this->duplicatedNodes++;
             if (duplicateNode->f >= n->f) {
+                this->duplicatedNodes++;
                 duplicateNode->g = n->g;
                 duplicateNode->f = n->f;
                 duplicateNode->parent = n->parent;
@@ -170,6 +175,7 @@ private:
                     open.update(openDuplicate->second->handle);
                 }
             }
+            this->generatedNodes--;
             return; // skip this successor because it's already in closed list and it was already updated
         } else 
             closed.emplace(n->state, n);
@@ -212,11 +218,8 @@ private:
     vector<State> finish(Node* n) {
         this->end();
         if(n == nullptr) {
-            cout << "No path found" << endl;
             return {};
         }
-        cout << "Goal found: " << endl;
-        cout << "Path Length: " << n->g << endl;
         return reconstructPath(n);
     }
 }; 

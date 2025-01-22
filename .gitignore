@@ -5,3 +5,9 @@ perf*
 vgcore*
 
 *.o
+
+*.out
+
+__pycache__
+raw_output/
+plots/

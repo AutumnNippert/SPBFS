@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <string>
+#include <cmath>
 #include <algorithm>
 #include <sstream>
 #include <iostream>
@@ -8,8 +9,6 @@
 #include "search.hpp"
 #include "problem_instance.hpp"
 #include "position.hpp"
-
-#include <cmath>
 
 #include <boost/unordered/unordered_flat_map.hpp>
 #include <boost/unordered/unordered_set.hpp>
@@ -27,7 +26,7 @@ namespace Pathfinding {
 
     struct State {
         Position actor; // current position of the actor
-        boost::unordered_set<Position, PositionHash> goals; // set of goal positions
+        boost::unordered_set<Position> goals; // set of goal positions
 
         bool operator==(const State& other) const {
             return actor == other.actor && goals == other.goals;
@@ -59,7 +58,7 @@ namespace Pathfinding {
     template<typename State, typename Cost = float>
     class PathfindingInstance: public ProblemInstance<State, Cost> {
     public:        
-        PathfindingInstance(size_t rows, size_t cols, boost::unordered_set<Position, PositionHash> walls, State& initial_state) : ProblemInstance<State, Cost>(initial_state) {
+        PathfindingInstance(size_t rows, size_t cols, boost::unordered_set<Position> walls, State& initial_state) : ProblemInstance<State, Cost>(initial_state) {
             this->dimr = rows;
             this->dimc = cols;
             this->walls = walls;
@@ -72,7 +71,7 @@ namespace Pathfinding {
             State state;
             string line;
             size_t dimr, dimc;
-            boost::unordered_set<Position, PositionHash> walls;
+            boost::unordered_set<Position> walls;
             
             // read dimensions
             input >> dimr >> dimc;
@@ -157,6 +156,6 @@ namespace Pathfinding {
     private:
         size_t dimr = 0; // Number of rows in the grid
         size_t dimc = 0; // Number of columns in the grid
-        boost::unordered_set<Position,PositionHash> walls; // Set of wall positions
+        boost::unordered_set<Position> walls; // Set of wall positions
     };
 }

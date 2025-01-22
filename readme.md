@@ -39,3 +39,14 @@ inline std::ostream& operator << (std::ostream& os, const State& s){
 ```
 $ ./main -a <algorithm> -p <problem> -t <threads=1> < <data-file>
 ```
+
+# Testing:
+## Collecting Data
+```
+$ python3 collect_data.py kbfs path 1-4 1 0-1000 500 sample-data/path_data/testing 4
+```
+
+## Creating Plots
+```
+$ python3 compare_algorithms.py 1-8 1 1000 cafe kbfs
+```

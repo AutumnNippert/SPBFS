@@ -7,8 +7,8 @@
 template <typename T>
 class ImmutableCircularQueue {
 public:
-    // default constructor
     ImmutableCircularQueue() = default;
+    
     explicit ImmutableCircularQueue(size_t maxSize) : max_size(maxSize) {
         items.resize(max_size);
     }
@@ -17,17 +17,12 @@ public:
 
     // Returns a new CircularQueue with the item added
     ImmutableCircularQueue push(T item) const {
-        if (max_size == 0) return *this; // I think it segfaults trying to do this otherwise
-        
+        if (max_size == 0) return *this;
         ImmutableCircularQueue newQueue = *this; // Copy current state
 
-        // Store the item
         newQueue.items[newQueue.round_robin_index] = item;
-
-        // Increment round_robin_index
         newQueue.round_robin_index = (newQueue.round_robin_index + 1) % max_size;
-
-        // Increment size if it is less than max_size
+        
         if (newQueue.curr_size < max_size) {
             newQueue.curr_size++;
         }

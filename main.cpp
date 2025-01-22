@@ -12,7 +12,7 @@
 template <typename State>
 void print_path(const std::vector<State>& path) {
     for (const auto& state : path) {
-        std::cout << state << std::endl;
+        std::clog << state << std::endl;
     }
 }
 
@@ -53,10 +53,10 @@ int main(int argc, char* argv[]) {
         }
     }
     
-    std::cout << "Algorithm: " << algorithmChoice << std::endl;
-    std::cout << "Problem: " << problem << std::endl;
-    std::cout << "Extra expansion time: " << extraExpansionTime << std::endl;
-    std::cout << "Thread count: " << threadCount << std::endl;
+    // std::clog << "Algorithm: " << algorithmChoice << std::endl;
+    std::clog << "Problem: " << problem << std::endl;
+    // std::clog << "Extra expansion time: " << extraExpansionTime << std::endl;
+    // std::clog << "Thread count: " << threadCount << std::endl;
 
     if (algorithmChoice == "astar") {
         if (problem == "tiles") {

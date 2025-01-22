@@ -6,6 +6,14 @@
 #include <iostream>
 #include <chrono>
 
+// Stat Recording
+#include <string>
+#include <map>
+#include <variant>
+#include <type_traits>
+
+using Value = std::variant<int, long int, size_t, double, bool, std::string>;
+
 template<typename State, typename Cost = float>
 class Search {
 public:
@@ -30,6 +38,11 @@ public:
     size_t expandedNodes = 0; // Number of nodes expanded during the search
     size_t generatedNodes = 0; // Number of nodes generated during the search
     size_t duplicatedNodes = 0; // Number of nodes duplicated during the search
+    
+    long pathLength = -1; // Length of the path found
+    
+    // create a map of string to string to store the search statistics
+    std::map<std::string, Value> searchStats;
 
     const ProblemInstance<State, Cost> *problemInstance;
     
@@ -48,12 +61,34 @@ public:
         }
     }
 
-    // Function to print search statistics
+    inline std::string toJsonValue(const Value& v) {
+        return std::visit([](auto&& arg) -> std::string {
+            using T = std::decay_t<decltype(arg)>;
+            if constexpr (std::is_same_v<T, std::string>) {
+                // Strings should be in quotes
+                return "\"" + arg + "\"";
+            } else if constexpr (std::is_same_v<T, bool>) {
+                // Booleans -> true/false
+                return arg ? "true" : "false";
+            } else {
+                // Numeric types -> as is
+                return std::to_string(arg);
+            }
+        }, v);
+    }
+
+    // Function to print search statistics in a json format
     void printStats() {
-        std::cout << "Expanded nodes: " << expandedNodes << std::endl;
-        std::cout << "Generated nodes: " << generatedNodes << std::endl;
-        std::cout << "Duplicated nodes: " << duplicatedNodes << std::endl;
-        // std::cout << "Max f value: " << maxF << std::endl;
+        // Print them as JSON
+        std::cout << "{\n";
+        for (auto it = searchStats.begin(); it != searchStats.end(); ++it) {
+            std::cout << "  \"" << it->first << "\": " << toJsonValue(it->second);
+            if (std::next(it) != searchStats.end()) {
+                std::cout << ",";
+            }
+            std::cout << "\n";
+        }
+        std::cout << "}\n";
     }
 
     void start() {
@@ -63,7 +98,15 @@ public:
     void end() {
         auto clockEnd = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsed = clockEnd - this->clockStart;
-        std::cout << "Elapsed time: " << elapsed.count() << "s" << std::endl;
+
+        // Add the search stats to the map
+        searchStats["Expanded Nodes"] = expandedNodes;
+        searchStats["Generated Nodes"] = generatedNodes;
+        searchStats["Duplicated Nodes"] = duplicatedNodes;
+        searchStats["Extra Expansion Time"] = extra_expansion_time;
+        searchStats["Elapsed Time"] = elapsed.count();
+        searchStats["Path Length"] = pathLength;
+
         this->printStats();
     }
 }; 

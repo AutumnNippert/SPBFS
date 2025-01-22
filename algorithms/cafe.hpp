@@ -4,7 +4,6 @@
 #include <boost/unordered/unordered_flat_map.hpp>
 using boost::unordered_flat_map;
 
-#include "mutable_circular_queue.hpp"
 #include "immutable_circular_queue.hpp"
 
 #include "recent_window_heap.hpp"
@@ -13,7 +12,6 @@ const size_t PRE_HEAP_SIZE = 8;
 #include <algorithm>
 #include <vector>
 #include <iostream>
-#include <optional>
 
 #include <atomic>
 #include <thread>
@@ -51,6 +49,10 @@ public:
         this->extra_expansion_time = extra_expansion_time;
         this->threadCount = threadCount;
         this->openQueue = ImmutableCircularQueue<Node*>(threadCount);
+
+        this->searchStats["Algorithm"] = "CAFE";
+        this->searchStats["Extra Expansion Time"] = extra_expansion_time;
+        this->searchStats["Threads"] = threadCount;
     }
     CAFE(const ProblemInstance<State, Cost>* problemInstance, size_t threadCount) : CAFE(problemInstance, 0, threadCount) {}
 
@@ -73,20 +75,19 @@ public:
         vector<vector<Node>*> threadNodePools;
 
         for (size_t i = 0; i < this->threadCount; i++) {
-            // create a new vector for each thread
+            // create a new Node Pool for each thread
             threadNodePools.push_back(new vector<Node>());
             threadNodePools[i]->reserve(20'000'000);
             threads.emplace_back(&CAFE::thread_speculate, this, i, stopSource.get_token(), threadNodePools[i]);
         }
-        cout << "Threads Initialized" << endl;
+        clog << "Threads Initialized" << endl;
 
-        // While should end when Open is empty and none of the threads are working,
-        // or when open is empty and the thread count is 0
+        // While should end when Open is empty and none of the threads are working
         while (true) {
             if (open.empty()){
-                // cout << "Open is empty" << endl;
+                // clog << "Open is empty" << endl;
                 if (threadsCompleted.load(std::memory_order_relaxed) == this->threadCount) {
-                    cout << "All threads are done" << endl;
+                    clog << "All threads are done" << endl;
                     break;
                 }
                 continue;
@@ -123,13 +124,14 @@ public:
                 // duplicate detection
                 auto it = closed.find(successor->state);
                 if (it != closed.end()) {
-                    this->duplicatedNodes++;
                     if (it->second->f > successor->f) {
+                        this->duplicatedNodes++;
                         it->second->g = successor->g;
                         it->second->f = successor->f;
                         it->second->parent = successor->parent;
                         open.update(it->second->handle);
                     }
+                    this->generatedNodes--;
                     continue;
                 } else 
                     closed.emplace(successor->state, successor);
@@ -143,13 +145,15 @@ public:
         }
 
         // request stop
-        cout << "Requesting Stop" << endl;
+        clog << "Requesting Stop" << endl;
         stopSource.request_stop();
 
         // join threads
         for(size_t i = 0; i < threads.size(); i++) {
             threads[i].join();
         }
+
+        this->pathLength = goal->g;
         return finish(goal);
     }
 
@@ -255,7 +259,6 @@ private:
         auto successors = this->getSuccessors(n->state);
         n->successors.reserve(successors.size());
         for (const auto& successorState : successors) {
-            // cout << "\tExpanding Successor" << endl;
             if (successorState == n->state) continue; // skip the parent state
 
             Cost g = n->g + this->getCost(n->state, successorState);
@@ -268,7 +271,6 @@ private:
             n->successors.push_back(successor); // Add the successor* to the parent's list of successors
         }
         this->wasteTime(this->extra_expansion_time);
-        // cout << "\tNode Expanded" << endl;
     }
 
     static vector<State> reconstructPath(
@@ -285,28 +287,13 @@ private:
     }
 
     vector<State> finish(Node* n) {
+        this->searchStats["Manual Expanded Nodes"] = manualExpandedNodes;
+        this->searchStats["Speculated Nodes"] = speculatedNodes;
         this->end();
-        cout << "Manual Expanded Nodes: " << manualExpandedNodes << endl;
-        cout << "Speculated Nodes: " << speculatedNodes << endl;
         if(n == nullptr) {
-            cout << "No path found" << endl;
+            clog << "No path found" << endl;
             return {};
         }
-        cout << "Goal found: " << endl;
-        cout << "Path Length: " << n->g << endl;
         return reconstructPath(n);
-    }
-
-    void lock(mutex& mtx, string name) {
-        cout << name << "::lock" << endl;
-        mtx.lock();
-        cout << name << "::successfully locked" << endl;
-
-    }
-
-    void unlock(mutex& mtx, string name) {
-        cout << name << "::unlock" << endl;
-        mtx.unlock();
-        cout << name << "::successfully unlocked" << endl;
     }
 };
