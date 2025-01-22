@@ -68,13 +68,13 @@ public:
         startNode->handle = open.push(startNode);
         openQueue = openQueue.push(startNode);
 
-        vector<vector<Node>*> threadNodePools;
-
+        vector<vector<Node>> threadNodePools;
+        threadNodePools.resize(this->threadCount);
         for (size_t i = 0; i < this->threadCount; i++) {
             // create a new vector for each thread
-            threadNodePools.push_back(new vector<Node>());
-            threadNodePools[i]->reserve(20'000'000);
-            threads.emplace_back(&CAFE::thread_speculate, this, i, stopSource.get_token(), threadNodePools[i]);
+            //threadNodePools.push_back(new vector<Node>());
+            threadNodePools[i].reserve(20'000'000);
+            threads.emplace_back(&CAFE::thread_speculate, this, i, stopSource.get_token(), &threadNodePools[i]);
         }
         cout << "Threads Initialized" << endl;
 
