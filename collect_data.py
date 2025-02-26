@@ -91,7 +91,7 @@ def run_one_case(algorithm, problem, extra, thread, file_path):
         ok = True/False (did it succeed?)
         data_dict = dict with JSON fields if succeeded, otherwise {}
     """
-    print(f"[INFO] Running: {algorithm} {problem} {extra} {thread} {file_path}")
+    # print(f"[INFO] Running: {algorithm} {problem} {extra} {thread} {file_path}")
     cmd = [
         "./main",
         "-a", algorithm,
@@ -176,6 +176,8 @@ def main():
         for e_val in extras:
             for t_val in threads:
                 for file_path in data_files:
+                    avg_exp_time = 0
+                    print(f"[INFO] Running: {algorithm} {problem} {e_val} {t_val} {file_path}")
                     for rep_i in range(repetitions):
                         ok, json_data = run_one_case(
                             algorithm, problem, e_val, t_val, file_path
@@ -194,11 +196,15 @@ def main():
                             "repetition": rep_i + 1
                         }
 
+                        avg_exp_time += json_data["Elapsed Time"]
+
                         # Copy the JSON keys/values from ./main output 
                         for key, val in json_data.items():
                             row[key] = val
 
                         raw_records.append(row)
+                    print(f"[INFO] Average expansion time: {avg_exp_time / repetitions:.2f}")
+                    
     except KeyboardInterrupt:
         print("\n[INFO] Interrupted by user.")
     finally:

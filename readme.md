@@ -47,6 +47,6 @@ $ python3 collect_data.py kbfs path 1-4 1 0-1000 500 sample-data/path_data/testi
 ```
 
 ## Creating Plots
-```
-$ python3 compare_algorithms.py 1-8 1 1000 cafe kbfs
+```sh
+$ python3 compare_algorithms.py 1-16 1 0 raw_output/raw_data_flexible.csv CAFE A\*
 ```

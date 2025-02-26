@@ -73,10 +73,10 @@ public:
         openQueue = openQueue.push(startNode);
 
         vector<vector<Node>> threadNodePools;
-        threadNodePools.resize(this->threadCount);
+        threadNodePools.resize(this->threadCount-1);
 
 
-        for (size_t i = 0; i < this->threadCount; i++) {
+        for (size_t i = 0; i < this->threadCount-1; i++) {
             // create a new Node Pool for each thread
             threadNodePools[i].reserve(20'000'000);
             threads.emplace_back(&CAFE::thread_speculate, this, i, stopSource.get_token(), &threadNodePools[i]);
@@ -87,7 +87,7 @@ public:
         while (true) {
             if (open.empty()){
                 // clog << "Open is empty" << endl;
-                if (threadsCompleted.load(std::memory_order_relaxed) == this->threadCount) {
+                if (threadsCompleted.load(std::memory_order_relaxed) == this->threadCount-1) {
                     clog << "All threads are done" << endl;
                     break;
                 }
@@ -105,7 +105,7 @@ public:
             Status expected = Status::UNVISITED;
             if (current->status.compare_exchange_strong(expected, Status::WORKING, 
                                                             std::memory_order_acquire, 
-                                                            std::memory_order_relaxed)) {     
+                                                            std::memory_order_acq_rel)) {
                 expand(current, nodes);
                 this->manualExpandedNodes++;
                 current->status.store(Status::DONE, std::memory_order_release);
@@ -130,6 +130,8 @@ public:
                         it->second->g = successor->g;
                         it->second->f = successor->f;
                         it->second->parent = successor->parent;
+                        it->second->successors = successor->successors;
+                        it->second->status.store(Status::UNVISITED, std::memory_order_release);
                         open.update(it->second->handle);
                     }
                     this->generatedNodes--;
