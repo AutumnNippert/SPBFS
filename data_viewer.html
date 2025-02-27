@@ -20,7 +20,6 @@
         }
         .controls {
             width: 10%;
-            min-width: 200px;
             padding-right: 10px;
             display: flex;
             flex-direction: column;
@@ -52,55 +51,139 @@
             <label for="extraExpansionSlider">Extra Expansion Time: </label>
             <input type="range" id="extraExpansionSlider" min="0" max="10" step="1" value="0">
             <span id="extraExpansionValue">0</span>
+            <label for="fileSelector">Select File:</label>
+            <select id="fileSelector">
+                <option value="all">All Files</option>
+            </select>
+            <!-- checkbox for speedup plot or not -->
+            <label for="speedupCheckbox">Speedup Plot?</label>
+            <input type="checkbox" id="speedupCheckbox">
+            <br>
+            <label for="algorithmCheckboxes">Select Algorithms:</label>
             <div id="algorithmCheckboxes"></div>
         </div>
         <div class="chart-container">
             <canvas id="chart"></canvas>
+            <canvas id="speedupChart" style="display: none;"></canvas>
             <div id="plot3D"></div>
         </div>
     </div>
+
     
     <script>
         let rawData = [];
+        let expansionRateMap = new Map();
+        let currExpansionTime = 0;
         let chart;
+        let speedupChart;
         let uniqueExpansionTimes = new Set();
+        let uniqueFiles = new Set();
+        let speedup = false;
 
-        document.getElementById("csvFileInput").addEventListener("change", function(event) {
+        const csv_input = document.getElementById("csvFileInput");
+        csv_input.addEventListener("change", function(event) {
             const file = event.target.files[0];
             if (!file) return;
             
             const reader = new FileReader();
             reader.onload = function(e) {
                 rawData = parseCSV(e.target.result);
+                postProcessing();
+                extractUniqueFiles();
                 extractUniqueExpansionTimes();
                 updateAlgorithmCheckboxes();
                 updateChart();
+                updateSpeedupChart();
                 update3DPlot();
             };
             reader.readAsText(file);
         });
-
-        document.getElementById("extraExpansionSlider").addEventListener("input", function(event) {
+        const fileSelector = document.getElementById("fileSelector");
+        fileSelector.addEventListener("change", () => {
+                extractUniqueExpansionTimes();
+                postProcessing();
+                updateAlgorithmCheckboxes();
+                updateChart();
+                updateSpeedupChart();
+                update3DPlot();
+            });
+        const extraExpansionSlider = document.getElementById("extraExpansionSlider");
+        extraExpansionSlider.addEventListener("input", function(event) {
             const closestValue = getClosestExpansionTime(parseFloat(event.target.value));
             document.getElementById("extraExpansionValue").innerText = closestValue;
             event.target.value = closestValue;
+            if (closestValue !== currExpansionTime) {
+                currExpansionTime = closestValue;
+                updateChart();
+                updateSpeedupChart();
+            }
+        });
+        const extraExpansionValue = document.getElementById("extraExpansionValue");
+
+        const speedupCheckbox = document.getElementById("speedupCheckbox");
+        speedupCheckbox.addEventListener("change", () => {
+            if (speedupCheckbox.checked) {
+                speedup = true;
+            } else {
+                speedup = false;
+            }
+            // if true, make chart invisible and speedup chart visible
+            // if false, make chart visible and speedup chart invisible
+            if (speedup) {
+                document.getElementById("chart").style.display = "none";
+                document.getElementById("speedupChart").style.display = "block";
+            } else {
+                document.getElementById("chart").style.display = "block";
+                document.getElementById("speedupChart").style.display = "none";
+            }
+        });
+
+        const algorithmCheckboxes = document.getElementById("algorithmCheckboxes");
+        algorithmCheckboxes.addEventListener("change", () => {
             updateChart();
+            updateSpeedupChart();
+            update3DPlot();
         });
 
         function parseCSV(csvText) {
             const rows = csvText.split("\n").map(row => row.split(","));
             const headers = rows.shift();
+            
             return rows.map(row => {
                 let obj = {};
                 row.forEach((val, index) => {
                     obj[headers[index].trim()] = isNaN(val) ? val.trim() : parseFloat(val);
                 });
+
                 return obj;
             });
         }
 
+        function postProcessing(){
+            // adds other tables and columns after parsing the csv
+            // make a expansionRateMap with 'extra expansion time' as the key and 'astar expansion rate' as the value (which is astar['expanded nodes'] / astar['elapsed time'])
+            expansionRateMap = new Map();
+            // filter raw data on file selected
+            rawData
+                .filter(row => (fileSelector.value === "all" || row["input_file"] == fileSelector.value))
+                .forEach(row => {
+                    if (row["Algorithm"] === "A*") {
+                        const extraExpansionTime = row["Extra Expansion Time"];
+                        const astarExpansionRate = row["Expanded Nodes"] / row["Elapsed Time"];
+                        if (!expansionRateMap.has(extraExpansionTime)) {
+                            expansionRateMap.set(extraExpansionTime, astarExpansionRate);
+                        }
+                    }
+                });
+            console.log(expansionRateMap);
+        }
+
         function extractUniqueExpansionTimes() {
-            uniqueExpansionTimes = new Set(rawData.map(row => row["Extra Expansion Time"]).filter(val => !isNaN(val)));
+            const selectedFile = fileSelector.value;
+            uniqueExpansionTimes = new Set(
+                rawData.filter(row => (selectedFile === "all" || row["input_file"] == selectedFile))
+                .map(row => row["Extra Expansion Time"])
+                .filter(val => !isNaN(val)));
             const slider = document.getElementById("extraExpansionSlider");
             if (uniqueExpansionTimes.size > 0) {
                 const min = Math.min(...uniqueExpansionTimes);
@@ -113,6 +196,19 @@
             }
         }
 
+        function extractUniqueFiles() {
+            fileSelector.innerHTML = '<option value="all">All Files</option>';
+            
+            uniqueFiles = new Set(rawData.map(row => row["input_file"]).filter(val => val));
+            
+            uniqueFiles.forEach(file => {
+                const option = document.createElement("option");
+                option.value = file;
+                option.textContent = file;
+                fileSelector.appendChild(option);
+            });
+        }
+
         function getClosestExpansionTime(value) {
             return [...uniqueExpansionTimes].reduce((prev, curr) => 
                 Math.abs(curr - value) < Math.abs(prev - value) ? curr : prev
@@ -120,9 +216,11 @@
         }
 
         function updateAlgorithmCheckboxes() {
+            const  selectedFile = document.getElementById("fileSelector").value;
             const container = document.getElementById("algorithmCheckboxes");
             container.innerHTML = "";
             const algorithms = [...new Set(rawData
+                .filter(row => (selectedFile === "all" || row["input_file"] == selectedFile))
                 .map(row => row["Algorithm"])
                 .filter(algorithm => algorithm !== undefined && algorithm !== null && !Number.isNaN(algorithm))
             )];
@@ -133,7 +231,9 @@
                 checkbox.value = algorithm;
                 checkbox.checked = true;
                 checkbox.addEventListener("change", () => {
-                    updateChart(); update3DPlot()
+                    updateChart();
+                    updateSpeedupChart();
+                    update3DPlot();
                 });
                 container.appendChild(checkbox);
                 container.appendChild(document.createTextNode(algorithm));
@@ -141,10 +241,11 @@
             });
         }
         function updateChart() {
+            const selectedFile = document.getElementById("fileSelector").value;
             const selectedAlgorithms = Array.from(document.querySelectorAll("#algorithmCheckboxes input:checked"))
                 .map(checkbox => checkbox.value);
             const extraExpansionTime = parseFloat(document.getElementById("extraExpansionSlider").value);
-            const filteredData = rawData.filter(row => selectedAlgorithms.includes(row["Algorithm"]) && row["Extra Expansion Time"] === extraExpansionTime);
+            const filteredData = rawData.filter(row => selectedAlgorithms.includes(row["Algorithm"]) && row["Extra Expansion Time"] === extraExpansionTime && (selectedFile === "all" || row["input_file"] == selectedFile));
 
             const averagedData = {};
             const availableThreads = new Set();
@@ -203,7 +304,120 @@
                         y: { title: { display: true, text: "Elapsed Time" } }
                     },
                     plugins: {
-                        title: { display: true, text: `Elapsed Time vs Threads (Extra Expansion Time: ${extraExpansionTime})`},
+                        title: { display: true, text: `Elapsed Time vs Thread Count (Extra Expansion Time: ${extraExpansionTime})`},
+                        tooltip: {
+                            enabled: true,
+                            mode: "index", // Show all values at the same x position
+                            axis: "x", // Ensure it groups by x-axis
+                            backgroundColor: "rgba(0, 0, 0, 0.8)",
+                            titleFont: { size: 14, weight: "bold" },
+                            bodyFont: { size: 14 },
+                            padding: 10,
+                            borderColor: "#fff",
+                            borderWidth: 1,
+                            titleAlign: "center",
+                            bodyAlign: "left", // Align text to the left for better readability
+                            displayColors: true, // Show color indicators
+                            intersect: false, // Allow tooltips to appear when hovering between points
+                            callbacks: {
+                                label: function(context) {
+                                    let value = (context.raw.y * 10000).toFixed(0);
+                                    return `${context.dataset.label}: ${value} ms`;
+                                }
+                            }
+                        }
+                    },
+                    hover: { mode: "index", intersect: false }
+                }
+            });
+        }
+
+        function updateSpeedupChart() {
+            const selectedFile = document.getElementById("fileSelector").value;
+            const selectedAlgorithms = Array.from(document.querySelectorAll("#algorithmCheckboxes input:checked"))
+                .map(checkbox => checkbox.value);
+            const extraExpansionTime = parseFloat(document.getElementById("extraExpansionSlider").value);
+            const filteredData = rawData.filter(row => selectedAlgorithms.includes(row["Algorithm"]) && row["Extra Expansion Time"] === extraExpansionTime && (selectedFile === "all" || row["input_file"] == selectedFile));
+
+            const averagedData = {};
+            const availableThreads = new Set();
+
+            filteredData.forEach(row => {
+                const algorithm = row["Algorithm"];
+                const threads = row["Threads"];
+
+                if (!averagedData[algorithm]) {
+                    averagedData[algorithm] = {};
+                }
+                if (!averagedData[algorithm][threads]) {
+                    averagedData[algorithm][threads] = { sum: 0, count: 0 };
+                }
+                averagedData[algorithm][threads].sum += row["Elapsed Time"];
+                averagedData[algorithm][threads].count += 1;
+                availableThreads.add(threads);
+            });
+
+            // Ensure all algorithms have data for all available threads
+            selectedAlgorithms.forEach(algorithm => {
+                const threadCounts = Object.keys(averagedData[algorithm] || {}).map(Number);
+                if (threadCounts.length === 1) {
+                    const singleThreadValue = threadCounts[0];
+                    const avgTime = averagedData[algorithm][singleThreadValue].sum / averagedData[algorithm][singleThreadValue].count;
+
+                    availableThreads.forEach(thread => {
+                        if (!averagedData[algorithm][thread]) {
+                            averagedData[algorithm][thread] = { sum: avgTime, count: 1 };
+                        }
+                    });
+                }
+            });
+
+            const datasets = selectedAlgorithms.map(algorithm => {
+                const dataPoints = Array.from(availableThreads).map(threads => ({
+                    x: parseFloat(threads),
+                    y: averagedData[algorithm][threads] ? (averagedData[algorithm][threads].sum / averagedData[algorithm][threads].count) : null
+                })).filter(point => point.y !== null);
+
+                return {
+                    label: algorithm,
+                    data: dataPoints,
+                    fill: false
+                };
+            });
+
+            // go through the data and calculate the speedup compared to A* for each thread count
+            const aStarData = averagedData["A*"];
+            const speedupDatasets = selectedAlgorithms.map(algorithm => {
+                const dataPoints = Array.from(availableThreads).map(threads => {
+                    const aStarTime = aStarData[threads].sum / aStarData[threads].count;
+                    const time = averagedData[algorithm][threads].sum / averagedData[algorithm][threads].count;
+                    return {
+                        x: parseFloat(threads),
+                        y: aStarTime / time
+                    };
+                });
+
+                return {
+                    label: algorithm,
+                    data: dataPoints,
+                    fill: false
+                };
+            });
+
+            console.log(speedupDatasets);
+
+            if (speedupChart) speedupChart.destroy();
+            speedupChart = new Chart(document.getElementById("speedupChart"), {
+                type: "line",
+                data: { datasets: speedupDatasets },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: { type: "linear", title: { display: true, text: "Threads" } },
+                        y: { title: { display: true, text: "Speedup" } }
+                    },
+                    plugins: {
+                        title: { display: true, text: `Speedup vs Thread Count (Extra Expansion Time: ${extraExpansionTime})`},
                         tooltip: {
                             enabled: true,
                             mode: "index", // Show all values at the same x position
@@ -232,11 +446,12 @@
         }
 
         function update3DPlot() {
+            const selectedFile = document.getElementById("fileSelector").value;
             const selectedAlgorithms = Array.from(document.querySelectorAll("#algorithmCheckboxes input:checked"))
                 .map(checkbox => checkbox.value);
 
             // Filter data based on selected algorithms
-            const filteredData = rawData.filter(row => selectedAlgorithms.includes(row["Algorithm"]));
+            const filteredData = rawData.filter(row => selectedAlgorithms.includes(row["Algorithm"]) && (selectedFile === "all" || row["input_file"] == selectedFile));
 
             // Process averaged data
             const averagedData = {};
@@ -258,13 +473,21 @@
                 const x = [];
                 const y = [];
                 const z = [];
+                const hoverText = [];
                 
                 Object.keys(averagedData[algorithm] || {}).forEach(expansionTime => {
                     Object.keys(averagedData[algorithm][expansionTime] || {}).forEach(threads => {
+                        const ms = averagedData[algorithm][expansionTime][threads].sum / averagedData[algorithm][expansionTime][threads].count * 1000;
                         x.push(parseFloat(threads));
-                        y.push(parseFloat(expansionTime));
-                        z.push(averagedData[algorithm][expansionTime][threads].sum / 
-                            averagedData[algorithm][expansionTime][threads].count);
+                        y.push(expansionRateMap.get(parseFloat(expansionTime)));
+                        z.push(ms);
+
+                        hoverText.push(
+                            `Algorithm: ${algorithm}<br>
+                            Threads: ${threads}<br>
+                            Expansion Rate: ${expansionRateMap.get(parseFloat(expansionTime)).toFixed(0)}/sec<br>
+                            Elapsed Time: ${ms.toFixed(0)} ms`
+                        );
                     });
                 });
 
@@ -272,6 +495,8 @@
                     x, y, z,
                     mode: "markers",
                     type: "scatter3d",
+                    hoverinfo: "text",
+                    text: hoverText,
                     name: algorithm,
                     marker: { size: 3, color: z, colorscale: "Viridis" }
                 };
@@ -281,15 +506,15 @@
                 // based on which algorithms are selected
                 if (selectedAlgorithms.length === 0) return "3D View of Elapsed Time";
                 if (selectedAlgorithms.length === 1) return `3D View of Elapsed Time for ${selectedAlgorithms[0]}`;
-                return `Elapsed Time over Threads and Expansion Time for ${selectedAlgorithms.join(", ")}`;
+                return `Elapsed Time over Threads and Expansion Rate for ${selectedAlgorithms.join(", ")}`;
             })();
 
             const layout = {
                 title: title,
                 scene: {
                     xaxis: { title: "Threads" },
-                    yaxis: { title: "Extra Expansion Time" },
-                    zaxis: { title: "Elapsed Time" }
+                    yaxis: { title: "A* Expansion Rate", type: "log"},
+                    zaxis: { title: "Elapsed Time (ms)"}
                 }
             };
 
