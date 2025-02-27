@@ -192,7 +192,8 @@ private:
                 auto duplicate = closed.find(successorState);
                 if (duplicate != closed.end()) { 
                     Node* duplicateNode = duplicate->second;
-                    if (duplicateNode->f > successor->f) { // only > because less effort to skip if they have the same f value
+                    if (duplicateNode->f <= successor->f) { // only > because less effort to skip if they have the same f value
+                        continue;
                         {
                             lock_guard<mutex> lock(duplicated_mutex);
                             this->duplicatedNodes++;
@@ -207,7 +208,7 @@ private:
                         }
                     }
                     {
-                        lock_guard<mutex> lock(generated_mutex);
+                        const lock_guard<mutex> lock(generated_mutex);
                         this->generatedNodes--; // undo the generation of the duplicate
                     }
                     continue; // skip this successor because it's already in closed list and it was already updated
