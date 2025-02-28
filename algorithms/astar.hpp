@@ -40,7 +40,7 @@ public:
 
     vector<State> findPath() override {
         this->start();
-        nodes.reserve(10'000'000); // reserve 10 million nodes
+        nodes.reserve(1'000'000'000); // reserve 10 million nodes
         // Side note, push back is amortized O(1), so we can compare the speed loss of reserve vs push_back at some point
 
         nodes.emplace_back(this->problemInstance->initial_state,

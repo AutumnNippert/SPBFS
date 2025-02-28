@@ -62,6 +62,7 @@ int main(int argc, char* argv[]) {
         if (problem == "tiles") {
             using namespace SlidingPuzzle;
             auto instance = SlidingTileInstance<State>::parseInput(std::cin);
+            std::cerr << instance;
             AStar<State> searcher(&instance, extraExpansionTime);
             auto path = searcher.findPath();
             // print_path(path);
