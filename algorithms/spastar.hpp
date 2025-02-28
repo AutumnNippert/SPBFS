@@ -29,7 +29,7 @@ class SPAStar : public Search<State, Cost> {
 
     struct Node;
     struct NodeCompare;
-    using MinHeap = boost::heap::d_ary_heap<Node*, boost::heap::arity<2>, boost::heap::mutable_<true>, boost::heap::compare<NodeCompare>>;
+    using MinHeap = boost::heap::d_ary_heap<Node*, boost::heap::arity<5>, boost::heap::mutable_<true>, boost::heap::compare<NodeCompare>>;
 
 public:
     SPAStar(const ProblemInstance<State, Cost>* problemInstance, size_t extra_expansion_time, size_t threadCount) : Search<State, Cost>(problemInstance){

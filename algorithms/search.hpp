@@ -16,6 +16,8 @@ using Value = std::variant<int, long int, size_t, double, bool, std::string>;
 
 template<typename State, typename Cost = float>
 class Search {
+private:
+    std::vector<State> successors;
 public:
 
     Search() {
@@ -46,7 +48,10 @@ public:
 
     const ProblemInstance<State, Cost> *problemInstance;
     
-    inline std::vector<State> getSuccessors(const State& state) const { return problemInstance->getSuccessors(state); }
+    inline std::vector<State>& getSuccessors(const State& state) { 
+        problemInstance->getSuccessors(state, successors);
+        return successors;
+    }
     inline Cost heuristic(const State& state) const { return problemInstance->heuristic(state); }
     inline Cost getCost(const State& state, const State& successor) const { return problemInstance->getCost(state, successor); }
     inline size_t hash(const State& state) const { return problemInstance->hash(state); }

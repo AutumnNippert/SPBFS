@@ -17,7 +17,7 @@ public:
      * @param state The state to get the successors for
      * @return A vector of successor states
      */
-    virtual std::vector<State> getSuccessors(const State& state) const = 0;
+    virtual void getSuccessors(const State& state, std::vector<State>& successors) const = 0;
 
     /**
      * Get the heuristic value for a given state
