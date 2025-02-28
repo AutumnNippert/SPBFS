@@ -8,6 +8,7 @@ using boost::unordered_flat_map;
 
 #include <queue>
 #include <boost/heap/d_ary_heap.hpp>
+#include <utils/ctpl.hpp>
 
 #include <algorithm>
 #include <vector>
@@ -26,6 +27,7 @@ class KBFS : public Search<State, Cost> {
     using HashFn = typename Search<State, Cost>::HashFn;
 
     size_t threadCount;
+    ctpl::thread_pool threadPool;
     struct Node;
     struct NodeCompare;
     using d_ary_heap = boost::heap::d_ary_heap<Node*, boost::heap::arity<2>, boost::heap::mutable_<true>, boost::heap::compare<NodeCompare>>;
@@ -33,7 +35,7 @@ class KBFS : public Search<State, Cost> {
 
 
 public:
-    KBFS(const ProblemInstance<State, Cost>* problemInstance, size_t extra_expansion_time, size_t threadCount) : Search<State, Cost>(problemInstance){
+    KBFS(const ProblemInstance<State, Cost>* problemInstance, size_t extra_expansion_time, size_t threadCount) : Search<State, Cost>(problemInstance), threadPool(threadCount) {
         closed = unordered_flat_map<State, Node*, HashFn>(0,     
         [this](const State& state) {
             return this->hash(state);
@@ -63,7 +65,6 @@ public:
 
         while (!open.empty()) {
             vector<Node*> threadNodes;
-            vector<jthread> threads;
             
             // Get nodes for the amount of nodes in the open list up to the thread count
             for (size_t i = 0; i < this->threadCount; i++) {
@@ -80,6 +81,7 @@ public:
             }
 
             vector<vector<Node*>> allSuccessors(threadNodes.size()); // Persistent storage for successors
+            vector<std::future<void>> results(threadNodes.size());
 
             for (size_t i = 0; i < threadNodes.size(); i++) {
                 if (i >= threadNodes.size()) break;
@@ -91,12 +93,16 @@ public:
                     allSuccessors[i][j] = &nodes.back();
                 }
 
-                threads.emplace_back(&KBFS::expand, this, threadNodes[i], ref(allSuccessors[i]));
+                // threads.emplace_back(&KBFS::expand, this, threadNodes[i], ref(allSuccessors[i]));
+                results[i] = threadPool.push([this, &threadNodes, &allSuccessors, i] (int id) {
+                    this->expand(threadNodes[i], allSuccessors[i]);
+                });
             }
-                        
-            // Wait for all threads to finish
-            for (size_t i = 0; i < threads.size(); i++) {
-                threads[i].join();
+            
+            // wait for all threads to finish
+            for (size_t i = 0; i < threadNodes.size(); i++) {
+                // threads[i].join();
+                results[i].get();
             }
 
             // add the successors to the open list
