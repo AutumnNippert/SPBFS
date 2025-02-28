@@ -127,14 +127,13 @@ namespace Pathfinding {
             return minDist;
         }
 
-        inline vector<State> getSuccessors(const State& state) const override {
-            vector<State> successors;
+        inline void getSuccessors(const State& state, vector<State>& successors) const override {
+            successors.clear();
             for (const auto& move : this->getValidMoves(state)) {
                 State newState = state;
                 applyMove(newState, move);
                 successors.push_back(newState);
             }
-            return successors;
         }
 
         inline float getCost(const State&, const State&) const override {

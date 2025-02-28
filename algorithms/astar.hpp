@@ -21,7 +21,7 @@ class AStar : public Search<State, Cost> {
 
     struct Node;
     struct NodeCompare;
-    using MinHeap = boost::heap::d_ary_heap<Node*, boost::heap::arity<2>, boost::heap::mutable_<true>, boost::heap::compare<NodeCompare>>;
+    using MinHeap = boost::heap::d_ary_heap<Node *, boost::heap::arity<2>, boost::heap::mutable_<true>, boost::heap::compare<NodeCompare>>;
 
 public:
     AStar(const ProblemInstance<State, Cost>* problemInstance, size_t extra_expansion_time) : Search<State, Cost>(problemInstance){
@@ -39,9 +39,11 @@ public:
     AStar(const ProblemInstance<State, Cost>* problemInstance) : AStar(problemInstance, 0) {}
 
     vector<State> findPath() override {
-        this->start();
         nodes.reserve(1'000'000'000); // reserve 10 million nodes
+        open.reserve(10'000'000);
+        closed.reserve(10'000'000);
         // Side note, push back is amortized O(1), so we can compare the speed loss of reserve vs push_back at some point
+        this->start();
 
         nodes.emplace_back(this->problemInstance->initial_state,
             0, this->heuristic(this->problemInstance->initial_state), nullptr);

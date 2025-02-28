@@ -16,13 +16,13 @@ using namespace std;
 
 namespace SlidingPuzzle {
 
-    constexpr std::pair<int, int> pos2coord(char position){
+    constexpr std::pair<int, int> pos2coord(const char& position){
         int y = position / 4;
         int x = position % 4;
         return std::make_pair(x, y);
     }
 
-    constexpr std::size_t manhattan_distance(std::pair<int, int> a, std::pair<int, int> b){
+    constexpr std::size_t manhattan_distance(const std::pair<int, int>& a, const std::pair<int, int>& b){
         return std::abs(a.first - b.first) + std::abs(a.second - b.second);
     }
 
@@ -45,7 +45,7 @@ namespace SlidingPuzzle {
         
         State() = default;
 
-        State(std::array<char, 16> state_array):packed_state(0){
+        State(const std::array<char, 16>& state_array):packed_state(0){
             for(std::uint64_t i = 0; i < 16; i++){
                 std::uint64_t val = (std::uint64_t)state_array[i] << (4*i);
                 packed_state |= val;
@@ -72,8 +72,8 @@ namespace SlidingPuzzle {
             return ss.str();
         }
 
-        inline vector<State> getSuccessors() const {
-            vector<State> successors;
+        inline void getSuccessors(vector<State>& successors) const {
+            successors.clear();
             auto s = expand();
             auto gap = pos2coord(s[0]);
             for(int i = 1; i < 16; i++){
@@ -92,7 +92,6 @@ namespace SlidingPuzzle {
                     s[0] = pg;
                 }
             }    
-            return successors;        
         }
         
         constexpr std::size_t heuristic() const {
@@ -152,12 +151,12 @@ namespace SlidingPuzzle {
             return state.heuristic();
         }
 
-        inline vector<State> getSuccessors(const State& state) const override {
-            return state.getSuccessors();
+        inline void getSuccessors(const State& state, vector<State>& successors) const override {
+            state.getSuccessors(successors);
         }
 
-        float getCost(const State&, const State&) const override {
-            return 1.0f;  // Each move costs 1
+        Cost getCost(const State&, const State&) const override {
+            return 1;  // Each move costs 1
         }
 
         size_t hash(const State& state) const override {
